@@ -212,7 +212,9 @@
 
     <div id="leaderboard">
       <h3>Placar de líderes</h3>
-      <ul id="leaderboardList"></ul>
+      <ul id="leaderboardList">
+        <li>Carregando placar...</li>
+      </ul>
     </div>
   </div>
 
@@ -253,7 +255,7 @@
       console.log("Firebase conectado com sucesso");
     } catch (error) {
       console.error("Erro ao conectar com Firebase:", error);
-      alert("Algumas funcionalidades podem não estar disponíveis devido a problemas de conexão");
+      document.getElementById('leaderboardList').innerHTML = '<li>Placar indisponível</li>';
     }
 
     // Variáveis globais
@@ -286,7 +288,69 @@
       }
     }
 
-    // Função para salvar a pontuação no Firebase - CORRIGIDA
+    // Função para carregar o placar de líderes - VERSÃO CORRIGIDA
+    async function loadLeaderboard() {
+      const leaderboardList = document.getElementById('leaderboardList');
+      if (!leaderboardList) return;
+
+      try {
+        const { ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
+        const playersRef = ref(db, 'players');
+        
+        onValue(playersRef, (snapshot) => {
+          if (!snapshot.exists()) {
+            leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
+            return;
+          }
+          
+          const players = snapshot.val();
+          const playersArray = [];
+          
+          // Converter objeto em array
+          for (const key in players) {
+            if (players.hasOwnProperty(key)) {
+              playersArray.push({
+                name: key,
+                score: players[key].score || 0,
+                timestamp: players[key].timestamp || 0
+              });
+            }
+          }
+          
+          // Ordenar por score (decrescente) e timestamp (crescente)
+          playersArray.sort((a, b) => {
+            if (b.score !== a.score) return b.score - a.score;
+            return a.timestamp - b.timestamp;
+          });
+          
+          // Limitar aos top 10
+          const topPlayers = playersArray.slice(0, 10);
+          
+          // Atualizar o placar
+          leaderboardList.innerHTML = '';
+          if (topPlayers.length === 0) {
+            leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
+            return;
+          }
+          
+          topPlayers.forEach((player, index) => {
+            const li = document.createElement('li');
+            li.textContent = `${index + 1}. ${player.name}: ${player.score} pontos`;
+            leaderboardList.appendChild(li);
+          });
+          
+        }, (error) => {
+          console.error("Erro ao carregar placar:", error);
+          leaderboardList.innerHTML = '<li>Erro ao carregar placar</li>';
+        });
+        
+      } catch (error) {
+        console.error("Erro no carregamento do placar:", error);
+        leaderboardList.innerHTML = '<li>Placar indisponível</li>';
+      }
+    }
+
+    // Função para salvar a pontuação no Firebase - VERSÃO CORRIGIDA
     async function saveScore(name, score, ip) {
       if (!db) {
         console.warn("Firebase não disponível para salvar pontuação");
@@ -296,8 +360,11 @@
       try {
         const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
         
+        // Remove caracteres inválidos para keys do Firebase
+        const safeName = name.replace(/[.$#[\]/]/g, '-');
+        
         // Salva o jogador na tabela de players
-        const playerRef = ref(db, 'players/' + name);
+        const playerRef = ref(db, 'players/' + safeName);
         await set(playerRef, {
           score: score,
           timestamp: Date.now(),
@@ -307,70 +374,15 @@
         // Registra o IP para evitar repetições
         const ipRef = ref(db, 'ips/' + ip);
         await set(ipRef, {
-          player: name,
+          player: safeName,
           timestamp: Date.now()
         });
         
-        console.log("Pontuação salva com sucesso");
+        console.log("Pontuação salva com sucesso para:", safeName);
         return true;
       } catch (error) {
         console.error("Erro ao salvar pontuação:", error);
         return false;
-      }
-    }
-
-    // Função para carregar o placar de líderes - CORRIGIDA
-    async function loadLeaderboard() {
-      if (!db) return;
-
-      try {
-        const { ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
-        const leaderboardList = document.getElementById('leaderboardList');
-        if (!leaderboardList) return;
-
-        const playersRef = ref(db, 'players');
-        
-        onValue(playersRef, (snapshot) => {
-          leaderboardList.innerHTML = '';
-          
-          if (!snapshot.exists()) {
-            leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
-            return;
-          }
-          
-          const players = snapshot.val();
-          const sortedPlayers = Object.entries(players)
-            .sort((a, b) => b[1].score - a[1].score)
-            .slice(0, 10); // Mostra apenas os top 10
-          
-          sortedPlayers.forEach(([name, data]) => {
-            const li = document.createElement('li');
-            li.textContent = `${name}: ${data.score} pontos`;
-            leaderboardList.appendChild(li);
-          });
-        });
-      } catch (error) {
-        console.error("Erro ao carregar placar:", error);
-      }
-    }
-
-    // Função para mostrar perguntas
-    function showQuestion(index) {
-      // Esconder todas as perguntas
-      document.querySelectorAll('.question').forEach(q => {
-        q.classList.add('hidden');
-      });
-
-      // Mostrar pergunta atual
-      const currentQuestion = document.getElementById(`q${index + 1}`);
-      if (currentQuestion) {
-        currentQuestion.classList.remove('hidden');
-      }
-
-      // Mostrar botão submit apenas na última pergunta
-      const submitBtn = document.getElementById('submitBtn');
-      if (submitBtn) {
-        submitBtn.classList.toggle('hidden', index !== totalQuestions - 1);
       }
     }
 
@@ -412,6 +424,26 @@
       } catch (error) {
         console.error("Erro ao iniciar quiz:", error);
         alert("Erro ao iniciar. Recarregue a página e tente novamente.");
+      }
+    }
+
+    // Função showQuestion
+    function showQuestion(index) {
+      // Esconder todas as perguntas
+      document.querySelectorAll('.question').forEach(q => {
+        q.classList.add('hidden');
+      });
+
+      // Mostrar pergunta atual
+      const currentQuestion = document.getElementById(`q${index + 1}`);
+      if (currentQuestion) {
+        currentQuestion.classList.remove('hidden');
+      }
+
+      // Mostrar botão submit apenas na última pergunta
+      const submitBtn = document.getElementById('submitBtn');
+      if (submitBtn) {
+        submitBtn.classList.toggle('hidden', index !== totalQuestions - 1);
       }
     }
 
@@ -462,7 +494,7 @@
           finalTitle.textContent = finalMessages[score] || "Obrigado por jogar!";
         }
 
-        // Mostra o GIF se acertou todas as perguntas - CORREÇÃO IMPORTANTE
+        // Mostra o GIF se acertou todas as perguntas
         if (score === totalQuestions) {
           const gifElement = document.getElementById('backgroundGif');
           if (gifElement) {
@@ -479,6 +511,24 @@
         alert("Ocorreu um erro ao processar suas respostas. Por favor, tente novamente.");
       }
     }
+
+    // Event listeners
+    document.getElementById('startBtn')?.addEventListener('click', () => {
+      startQuiz().catch(e => console.error("Erro no clique:", e));
+    });
+
+    // Avançar para próxima pergunta ao responder
+    document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
+      input.addEventListener('change', () => {
+        if (currentQuestionIndex < totalQuestions - 1) {
+          currentQuestionIndex++;
+          showQuestion(currentQuestionIndex);
+        }
+      });
+    });
+
+    // Vincular evento ao botão Ver resultado
+    document.getElementById('submitBtn')?.addEventListener('click', checkAnswers);
 
     // Função para abrir modal de limpeza
     async function openClearModal() {
@@ -577,24 +627,6 @@
       }
     }
 
-    // Event listeners
-    document.getElementById('startBtn')?.addEventListener('click', () => {
-      startQuiz().catch(e => console.error("Erro no clique:", e));
-    });
-
-    // Avançar para próxima pergunta ao responder
-    document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
-      input.addEventListener('change', () => {
-        if (currentQuestionIndex < totalQuestions - 1) {
-          currentQuestionIndex++;
-          showQuestion(currentQuestionIndex);
-        }
-      });
-    });
-
-    // Vincular evento ao botão Ver resultado
-    document.getElementById('submitBtn')?.addEventListener('click', checkAnswers);
-
     // Event listener para o botão Limpar placar
     document.getElementById('clearBtn')?.addEventListener('click', async () => {
       const senha = prompt("Digite a senha de administrador:");
@@ -639,7 +671,7 @@
       loadLeaderboard();
     });
 
-    // Inicialização
+    // Inicialização - CARREGA O PLACAR AO INICIAR
     document.addEventListener('DOMContentLoaded', () => {
       loadLeaderboard();
       console.log("Jogo inicializado e pronto");
