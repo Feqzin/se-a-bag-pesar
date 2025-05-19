@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Se a bag pesar</title>
   <style>
     body {
@@ -62,22 +62,53 @@
     }
     #mainContent {
       max-width: 600px;
-      text-align: center;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
     }
     #leaderboard {
       width: 280px;
       margin-left: 40px;
-      color: #0f0;
+      border-left: 1px solid #0f0;
+      padding-left: 20px;
+      max-height: 80vh;
+      overflow-y: auto;
     }
     #leaderboard h3 {
+      color: #0f0;
       margin-top: 0;
     }
     #leaderboard ul {
       list-style: none;
       padding: 0;
+      margin: 0;
     }
     #leaderboard li {
       margin-bottom: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    #selectToDelete {
+      margin-top: 10px;
+      max-height: 200px;
+      overflow-y: auto;
+      border: 1px solid #0f0;
+      padding: 10px;
+      background: #111;
+    }
+    #deleteSelectionBtn {
+      margin-top: 10px;
+      background-color: #f00;
+      color: #fff;
+      font-weight: bold;
+    }
+    #cancelDeleteBtn {
+      margin-top: 5px;
+      background-color: #555;
+      color: #fff;
+      font-weight: bold;
     }
   </style>
 </head>
@@ -93,8 +124,16 @@
         <br />
         <button id="startBtn">Começar o jogo</button>
         <br />
-        <button id="clearBtn">Limpar meu placar</button>
+        <button id="clearBtn">Limpar placar(s) selecionado(s)</button>
       </div>
+
+      <div id="selectToDelete" class="hidden">
+        <p>Selecione os jogadores para remover do placar:</p>
+        <div id="playersToDelete"></div>
+        <button id="deleteSelectionBtn">Remover selecionados</button>
+        <button id="cancelDeleteBtn">Cancelar</button>
+      </div>
+
       <div id="quiz" class="hidden">
         <div class="question" id="q1">
           <p>1. Qual animal aparece como símbolo de lucro no som?</p>
@@ -138,6 +177,7 @@
 
         <button class="hidden" id="submitBtn">Ver resultado</button>
       </div>
+
       <div id="finalMessage" class="hidden">
         <h2>Você aguenta a bag.</h2>
         <p id="scoreDisplay"></p>
@@ -151,108 +191,152 @@
     </div>
   </div>
 
-  <script>
-    const radios = document.querySelectorAll('input[type=radio]');
-    radios.forEach(radio => {
-      radio.addEventListener('change', e => {
-        const name = e.target.name;
-        const qNum = parseInt(name.replace('q', ''));
-        const nextQ = document.getElementById(`q${qNum + 1}`);
-        if (nextQ) {
-          document.getElementById(`q${qNum}`).classList.add('hidden');
-          nextQ.classList.remove('hidden');
-        } else {
-          document.getElementById('submitBtn').classList.remove('hidden');
-        }
-      });
-    });
-
-    document.getElementById('startBtn').addEventListener('click', startQuiz);
-    document.getElementById('clearBtn').addEventListener('click', clearMyScore);
-    document.getElementById('submitBtn').addEventListener('click', checkAnswers);
-
-    async function startQuiz() {
-      const playerName = document.getElementById('playerName').value.trim();
-      if (!playerName) {
-        alert("Digite seu nome para começar.");
-        return;
-      }
-      // Salva o nome no localStorage para usar depois ao limpar placar
-      localStorage.setItem('currentPlayerName', playerName);
-      document.getElementById('intro').classList.add('hidden');
-      document.getElementById('quiz').classList.remove('hidden');
-    }
-
-    function clearMyScore() {
-      const password = prompt("Digite a senha para limpar seu placar:");
-      if (password === "bagsecreta123") {
-        const name = localStorage.getItem('currentPlayerName');
-        if (!name) {
-          alert("Nenhum jogador encontrado para limpar placar.");
-          return;
-        }
-        let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-        leaderboard = leaderboard.filter(entry => entry.name !== name);
-        localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-        renderLeaderboard();
-        alert("Seu placar foi removido com sucesso.");
+<script>
+  const radios = document.querySelectorAll('input[type=radio]');
+  radios.forEach(radio => {
+    radio.addEventListener('change', e => {
+      const name = e.target.name;
+      const qNum = parseInt(name.replace('q', ''));
+      const nextQ = document.getElementById(`q${qNum + 1}`);
+      if (nextQ) {
+        document.getElementById(`q${qNum}`).classList.add('hidden');
+        nextQ.classList.remove('hidden');
       } else {
-        alert("Senha incorreta.");
+        document.getElementById('submitBtn').classList.remove('hidden');
       }
+    });
+  });
+
+  document.getElementById('startBtn').addEventListener('click', startQuiz);
+  document.getElementById('clearBtn').addEventListener('click', showDeleteSelection);
+  document.getElementById('deleteSelectionBtn').addEventListener('click', deleteSelectedPlayers);
+  document.getElementById('cancelDeleteBtn').addEventListener('click', cancelDeleteSelection);
+  document.getElementById('submitBtn').addEventListener('click', checkAnswers);
+
+  function startQuiz() {
+    const playerName = document.getElementById('playerName').value.trim();
+    if (!playerName) {
+      alert("Digite seu nome para começar.");
+      return;
+    }
+    localStorage.setItem('currentPlayerName', playerName);
+    document.getElementById('intro').classList.add('hidden');
+    document.getElementById('quiz').classList.remove('hidden');
+  }
+
+  function showDeleteSelection() {
+    // Mostrar painel de seleção e esconder quiz/intro
+    document.getElementById('intro').classList.add('hidden');
+    document.getElementById('quiz').classList.add('hidden');
+    document.getElementById('finalMessage').classList.add('hidden');
+    const selectDiv = document.getElementById('selectToDelete');
+    const containerPlayers = document.getElementById('playersToDelete');
+
+    // Pega a lista atual
+    const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+    containerPlayers.innerHTML = '';
+
+    if (leaderboard.length === 0) {
+      containerPlayers.innerHTML = '<p>Nenhum placar para mostrar.</p>';
+    } else {
+      leaderboard.forEach((entry, index) => {
+        const div = document.createElement('div');
+        div.style.marginBottom = '6px';
+        div.innerHTML = `
+          <label>
+            <input type="checkbox" value="${entry.name}" />
+            ${entry.name} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})
+          </label>
+        `;
+        containerPlayers.appendChild(div);
+      });
+    }
+    selectDiv.classList.remove('hidden');
+  }
+
+  function cancelDeleteSelection() {
+    document.getElementById('selectToDelete').classList.add('hidden');
+    document.getElementById('intro').classList.remove('hidden');
+  }
+
+  function deleteSelectedPlayers() {
+    const checkboxes = document.querySelectorAll('#playersToDelete input[type=checkbox]:checked');
+    if (checkboxes.length === 0) {
+      alert("Selecione pelo menos um jogador para remover.");
+      return;
     }
 
-    function checkAnswers() {
-      let score = 0;
-      for (let i = 1; i <= 4; i++) {
-        const answer = document.querySelector(`input[name=q${i}]:checked`);
-        if (answer && answer.value === '1') score++;
+    const password = prompt("Digite a senha para limpar os placares selecionados:");
+    if (password !== "bagsecreta123") {
+      alert("Senha incorreta.");
+      return;
+    }
+
+    let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+
+    // Remove os jogadores selecionados
+    const namesToDelete = Array.from(checkboxes).map(cb => cb.value);
+    leaderboard = leaderboard.filter(entry => !namesToDelete.includes(entry.name));
+
+    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+    renderLeaderboard();
+
+    alert("Placares removidos com sucesso!");
+
+    // Volta para tela inicial
+    cancelDeleteSelection();
+  }
+
+  function checkAnswers() {
+    let score = 0;
+    for (let i = 1; i <= 4; i++) {
+      const answer = document.querySelector(`input[name=q${i}]:checked`);
+      if (answer && answer.value === '1') score++;
+    }
+
+    const name = document.getElementById('playerName').value.trim();
+    if (!name) return;
+
+    getCityFromIP().then(city => {
+      let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+      const exists = leaderboard.find(entry => entry.name === name);
+      if (!exists) {
+        leaderboard.push({ name, score, location: city });
+        localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
       }
-
-      const name = document.getElementById('playerName').value.trim();
-      if (!name) return;
-
-      getCityFromIP().then(city => {
-        let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-        const exists = leaderboard.find(entry => entry.name === name);
-        if (!exists) {
-          leaderboard.push({ name, score, location: city });
-          localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-          renderLeaderboard();
-        }
-      });
-
       document.getElementById('quiz').classList.add('hidden');
       document.getElementById('finalMessage').classList.remove('hidden');
-      document.getElementById('scoreDisplay').innerText = `Você acertou ${score} de 4 perguntas.`;
+      document.getElementById('scoreDisplay').textContent = `Você acertou ${score} de 4 perguntas.`;
+      renderLeaderboard();
+    });
+  }
 
-      if (score === 4) {
-        document.getElementById('backgroundGif').style.display = 'block';
-      }
+  function renderLeaderboard() {
+    const list = document.getElementById('leaderboardList');
+    const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+    list.innerHTML = '';
+
+    leaderboard.sort((a,b) => b.score - a.score);
+    leaderboard.forEach(entry => {
+      const li = document.createElement('li');
+      li.textContent = `${entry.name} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`;
+      list.appendChild(li);
+    });
+  }
+
+  // Função para pegar cidade pelo IP - retorna uma Promise<string>
+  async function getCityFromIP() {
+    try {
+      const response = await fetch('https://ipapi.co/json/');
+      if (!response.ok) throw new Error('Erro na API');
+      const data = await response.json();
+      return data.city || 'Localização desconhecida';
+    } catch {
+      return 'Localização desconhecida';
     }
+  }
 
-    function renderLeaderboard() {
-      const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-      leaderboard.sort((a, b) => b.score - a.score);
-      const list = document.getElementById('leaderboardList');
-      list.innerHTML = '';
-      leaderboard.forEach(entry => {
-        const li = document.createElement('li');
-        li.textContent = `${entry.name} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`;
-        list.appendChild(li);
-      });
-    }
-
-    async function getCityFromIP() {
-      try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        return data.city || 'Localização desconhecida';
-      } catch (error) {
-        return 'Localização desconhecida';
-      }
-    }
-
-    renderLeaderboard();
-  </script>
+  renderLeaderboard();
+</script>
 </body>
 </html>
