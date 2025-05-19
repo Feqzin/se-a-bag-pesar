@@ -105,7 +105,7 @@
         </div>
       </div>
 
-      <button class="hidden" id="submitBtn">Ver resultado</button>
+      <button id="submitBtn" class="hidden">Ver resultado</button>
     </div>
 
     <div id="finalMessage" class="hidden">
@@ -126,6 +126,7 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 <script>
+  // Substitua com suas credenciais Firebase aqui:
   const firebaseConfig = {
     apiKey: "SUA_API_KEY_AQUI",
     authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -227,9 +228,7 @@
     });
   });
 
-  submitBtn.addEventListener('click', async (e) => {
-    e.preventDefault();
-
+  submitBtn.addEventListener('click', async () => {
     let score = 0;
     for (let i = 1; i <= 4; i++) {
       const answer = document.querySelector(`input[name=q${i}]:checked`);
@@ -253,7 +252,8 @@
     });
 
     userHasPlayed = true;
-    renderLeaderboard(await db.ref('players').once('value').then(s => s.val()));
+    const playersSnapshot = await db.ref('players').once('value');
+    renderLeaderboard(playersSnapshot.val());
 
     quizDiv.classList.add('hidden');
     finalMessage.classList.remove('hidden');
@@ -291,7 +291,9 @@
     alert('Seu placar foi removido e seu IP liberado para jogar de novo.');
 
     userHasPlayed = false;
-    renderLeaderboard(await db.ref('players').once('value').then(s => s.val()));
+    const playersSnapshot = await db.ref('players').once('value');
+    renderLeaderboard(playersSnapshot.val());
+
     introDiv.classList.remove('hidden');
     finalMessage.classList.add('hidden');
     quizDiv.classList.add('hidden');
