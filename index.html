@@ -10,16 +10,28 @@
       font-family: 'Courier New', Courier, monospace;
       background-color: #000;
       color: #0f0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex-direction: column;
-      min-height: 100vh;
       text-align: center;
+      overflow: hidden;
+    }
+    .container {
+      position: relative;
+      z-index: 2;
+      padding: 20px;
+    }
+    #backgroundGif {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      object-fit: cover;
+      z-index: 1;
+      opacity: 0.3;
+      pointer-events: none;
     }
     .hidden { display: none; }
     button {
-      margin-top: 20px;
+      margin-top: 10px;
       padding: 12px 24px;
       background-color: #0f0;
       border: none;
@@ -28,8 +40,13 @@
       cursor: pointer;
       font-size: 1rem;
     }
-    .question { margin-top: 30px; }
-    .question p { margin-bottom: 10px; }
+    input {
+      padding: 10px;
+      font-size: 1rem;
+    }
+    .question {
+      margin-top: 30px;
+    }
     .answers label {
       display: block;
       margin: 6px 0;
@@ -40,173 +57,138 @@
       font-weight: bold;
       font-size: 1.2rem;
       text-decoration: underline;
-      z-index: 10;
-      position: relative;
-    }
-    #finalMessage a:hover {
-      color: #7fff7f;
-      text-decoration: none;
-    }
-    #backgroundGif {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: -1;
-      opacity: 0.2;
-    }
-    #leaderboard {
-      margin-top: 40px;
-    }
-    #leaderboard h3 {
-      margin-bottom: 10px;
-    }
-    #leaderboard ul {
-      list-style: none;
-      padding: 0;
-    }
-    #leaderboard li {
-      margin: 4px 0;
     }
   </style>
 </head>
 <body>
-  <div id="intro">
-    <h1>"Se a bag pesar..."</h1>
-    <p>Você vai aguentar ou vai correr?</p>
-    <input type="text" id="username" placeholder="Digite seu nome" />
-    <button onclick="startQuiz()">Começar o jogo</button>
-  </div>
+  <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
 
-  <div id="quiz" class="hidden">
-    <div class="question" id="q1">
-      <p>1. Qual animal aparece como símbolo de lucro no som?</p>
-      <div class="answers">
-        <label><input type="radio" name="q1" value="0" /> Tigre</label>
-        <label><input type="radio" name="q1" value="1" /> Onça</label>
-        <label><input type="radio" name="q1" value="0" /> Cobra</label>
-        <label><input type="radio" name="q1" value="0" /> Corvo</label>
-      </div>
+  <div class="container">
+    <div id="intro">
+      <h1>"Se a bag pesar..."</h1>
+      <p>Você vai aguentar ou vai correr?</p>
+      <input type="text" id="username" placeholder="Digite seu nome" />
+      <button onclick="startQuiz()">Começar o jogo</button>
+      <br /><br />
+      <button onclick="clearLeaderboard()">🔒 Limpar placar (admin)</button>
     </div>
 
-    <div class="question hidden" id="q2">
-      <p>2. O que o “Magikarp” representa na letra?</p>
-      <div class="answers">
-        <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
-        <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
-        <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
-        <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
+    <div id="quiz" class="hidden">
+      <div class="question" id="q1">
+        <p>1. Qual animal aparece como símbolo de lucro no som?</p>
+        <div class="answers">
+          <label><input type="radio" name="q1" value="0" /> Tigre</label>
+          <label><input type="radio" name="q1" value="1" /> Onça</label>
+          <label><input type="radio" name="q1" value="0" /> Cobra</label>
+          <label><input type="radio" name="q1" value="0" /> Corvo</label>
+        </div>
       </div>
+
+      <div class="question hidden" id="q2">
+        <p>2. O que o “Magikarp” representa na letra?</p>
+        <div class="answers">
+          <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
+          <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
+          <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
+          <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
+        </div>
+      </div>
+
+      <div class="question hidden" id="q3">
+        <p>3. O que acontece “se a bag pesar”?</p>
+        <div class="answers">
+          <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
+          <label><input type="radio" name="q3" value="0" /> Eu corro</label>
+          <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
+          <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
+        </div>
+      </div>
+
+      <div class="question hidden" id="q4">
+        <p>4. Quando será lançada a música?</p>
+        <div class="answers">
+          <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
+          <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
+          <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
+          <label><input type="radio" name="q4" value="0" /> 29-05-25</label>
+        </div>
+      </div>
+
+      <button class="hidden" id="submitBtn" onclick="checkAnswers()">Ver resultado</button>
     </div>
 
-    <div class="question hidden" id="q3">
-      <p>3. O que acontece “se a bag pesar”?</p>
-      <div class="answers">
-        <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
-        <label><input type="radio" name="q3" value="0" /> Eu corro</label>
-        <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
-        <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
-      </div>
-    </div>
-
-    <div class="question hidden" id="q4">
-      <p>4. Quando será lançada a música "Se a bag pesar"?</p>
-      <div class="answers">
-        <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
-        <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
-        <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
-        <label><input type="radio" name="q4" value="0" /> 01-07-25</label>
-      </div>
-    </div>
-
-    <button class="hidden" id="submitBtn" onclick="checkAnswers()">Ver resultado</button>
-  </div>
-
-  <div id="finalMessage" class="hidden">
-    <h2>Você aguenta a bag.</h2>
-    <p id="scoreDisplay"></p>
-    <img id="oncaGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" style="max-width: 300px; margin-top: 20px;" />
-    <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank">OUVIR "Se a bag pesar"</a></p>
-    <div id="leaderboard">
-      <h3>🔥 Placar dos jogadores 🔥</h3>
+    <div id="finalMessage" class="hidden">
+      <h2>Você aguenta a bag.</h2>
+      <p id="scoreDisplay"></p>
+      <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank">OUVIR "Se a bag pesar"</a></p>
+      <h3>Placar dos líderes:</h3>
       <ul id="leaderboardList"></ul>
-      <button onclick="clearLeaderboard()">Limpar placar</button>
     </div>
   </div>
-
-  <img id="backgroundGif" class="hidden" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
 
   <script>
-    let currentQuestion = 1;
-    const totalQuestions = 4;
-
-    function startQuiz() {
-      const username = document.getElementById("username").value.trim();
-      if (!username) {
-        alert("Digite seu nome para começar.");
-        return;
-      }
-
-      const playedUsers = JSON.parse(localStorage.getItem("playedUsers")) || [];
-      if (playedUsers.includes(username)) {
-        alert("Você já jogou. Só é permitido uma vez por pessoa.");
-        return;
-      }
-
-      localStorage.setItem("currentUsername", username);
-      document.getElementById("intro").classList.add("hidden");
-      document.getElementById("quiz").classList.remove("hidden");
-    }
-
     const radios = document.querySelectorAll('input[type=radio]');
     radios.forEach(radio => {
       radio.addEventListener('change', (e) => {
         const name = e.target.name;
         const qNum = parseInt(name.replace('q', ''));
-        if (qNum < totalQuestions) {
+        if (qNum < 4) {
           document.getElementById(`q${qNum}`).classList.add('hidden');
           document.getElementById(`q${qNum + 1}`).classList.remove('hidden');
         }
-        if (qNum === totalQuestions) {
+        if (qNum === 4) {
           document.getElementById('submitBtn').classList.remove('hidden');
         }
       });
     });
 
+    function startQuiz() {
+      const username = document.getElementById('username').value.trim();
+      if (!username) {
+        alert("Digite seu nome para começar.");
+        return;
+      }
+      const played = JSON.parse(localStorage.getItem('playedUsers') || '[]');
+      if (played.includes(getUserId())) {
+        alert("Você já jogou! Só vale uma vez.");
+        return;
+      }
+      localStorage.setItem('currentUsername', username);
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('quiz').classList.remove('hidden');
+    }
+
     function checkAnswers() {
       let score = 0;
-      for (let i = 1; i <= totalQuestions; i++) {
+      for (let i = 1; i <= 4; i++) {
         const answer = document.querySelector(`input[name=q${i}]:checked`);
         if (answer && answer.value === '1') score++;
       }
 
-      const username = localStorage.getItem("currentUsername");
-      const leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
+      const username = localStorage.getItem('currentUsername');
+      const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
       leaderboard.push({ name: username, score });
-      localStorage.setItem("leaderboard", JSON.stringify(leaderboard));
+      leaderboard.sort((a, b) => b.score - a.score);
+      localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
 
-      const playedUsers = JSON.parse(localStorage.getItem("playedUsers")) || [];
-      playedUsers.push(username);
-      localStorage.setItem("playedUsers", JSON.stringify(playedUsers));
+      const played = JSON.parse(localStorage.getItem('playedUsers') || '[]');
+      played.push(getUserId());
+      localStorage.setItem('playedUsers', JSON.stringify(played));
 
       document.getElementById('quiz').classList.add('hidden');
       document.getElementById('finalMessage').classList.remove('hidden');
-      document.getElementById('scoreDisplay').innerText = `Você acertou ${score} de ${totalQuestions} perguntas.`;
-
-      document.getElementById('backgroundGif').classList.remove('hidden');
+      document.getElementById('scoreDisplay').innerText = `Você acertou ${score} de 4 perguntas.`;
 
       renderLeaderboard();
     }
 
     function renderLeaderboard() {
-      const leaderboard = JSON.parse(localStorage.getItem("leaderboard")) || [];
-      const list = document.getElementById("leaderboardList");
-      list.innerHTML = "";
+      const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+      const list = document.getElementById('leaderboardList');
+      list.innerHTML = '';
       leaderboard.forEach(entry => {
-        const li = document.createElement("li");
-        li.textContent = `${entry.name} - ${entry.score}/${totalQuestions}`;
+        const li = document.createElement('li');
+        li.innerText = `${entry.name}: ${entry.score}/4`;
         list.appendChild(li);
       });
     }
@@ -220,13 +202,20 @@
       if (confirm("Tem certeza que deseja limpar o placar? Essa ação não pode ser desfeita.")) {
         localStorage.removeItem("leaderboard");
         localStorage.removeItem("playedUsers");
+        localStorage.removeItem("currentUsername");
         renderLeaderboard();
         alert("Placar limpo com sucesso.");
       }
     }
 
-    // Renderiza placar automaticamente ao abrir
-    renderLeaderboard();
+    function getUserId() {
+      // ID simples baseado no navegador, substituível por IP real se tiver backend
+      return navigator.userAgent + window.screen.width + window.screen.height;
+    }
+
+    window.onload = () => {
+      renderLeaderboard();
+    };
   </script>
 </body>
 </html>
