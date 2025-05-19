@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Se a bag pesar</title>
   <style>
+    /* Seu CSS original aqui, sem alterações */
     body {
       margin: 0;
       font-family: 'Courier New', Courier, monospace;
@@ -209,7 +210,7 @@
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
-    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js";
+    import { getDatabase, ref, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAH6bRDAGuKVdv6XDWkrwpX-prapchLYTw",
@@ -244,6 +245,9 @@
     const clearForm = document.getElementById('clearForm');
     const cancelClear = document.getElementById('cancelClear');
 
+    let currentPlayerName = null;
+    let currentPlayerIP = null;
+
     startBtn.addEventListener('click', startQuiz);
     clearBtn.addEventListener('click', openClearModal);
     submitBtn.addEventListener('click', checkAnswers);
@@ -251,183 +255,194 @@
       modalOverlay.style.display = 'none';
     });
 
-    async function saveScore(name, score, location) {
+    async function getUserIP() {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        return data.ip;
+      } catch {
+        return null;
+      }
+    }
+
+    async function saveScore(name, score, location, ip) {
       const playerRef = ref(db, 'players/' + name);
-      await set(playerRef, { score, location });
+      const ipRef = ref(db, 'ips/' + ip);
+      await set(playerRef, { score, location, ip });
+      await set(ipRef, { player: name });
     }
 
     async function removeScore(name) {
+      // Para remover o IP, precisamos buscar o IP do jogador
       const playerRef = ref(db, 'players/' + name);
+      const snapshot = await get(playerRef);
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        if (data.ip) {
+          const ipRef = ref(db, 'ips/' + data.ip);
+          await remove(ipRef);
+        }
+      }
       await remove(playerRef);
     }
 
-    function renderLeaderboard() {
-      const playersRef = ref(db, 'players');
-      onValue(playersRef, (snapshot) => {
-        const data = snapshot.val();
-        const list = document.getElementById('leaderboardList');
-        list.innerHTML = '';
-
-        if (!data) return;
-
-        const sortedPlayers = Object.entries(data).sort((a, b) => b[1].score - a[1].score);
-
-        sortedPlayers.forEach(([playerName, entry]) => {
-          const li = document.createElement('li');
-          li.textContent = `${playerName} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`;
-          list.appendChild(li);
-        });
-      });
-    }
-
-    renderLeaderboard();
-
-    async function startQuiz() {
-      const playerName = playerNameInput.value.trim();
-      if (!playerName) {
-        alert("Digite seu nome para começar.");
-        return;
-      }
-      document.getElementById('intro').classList.add('hidden');
-      document.getElementById('quiz').classList.remove('hidden');
-      document.getElementById('leaderboard').style.display = 'block';
-
-      for(let i = 1; i <= 4; i++) {
-        const q = document.getElementById(`q${i}`);
-        if(i === 1) {
-          q.classList.remove('hidden');
-        } else {
-          q.classList.add('hidden');
-        }
-        const radios = q.querySelectorAll('input[type=radio]');
-        radios.forEach(r => r.checked = false);
-      }
-
-      submitBtn.classList.add('hidden');
-
-      // Remove antigos event listeners antes de adicionar novos
-      const radios = document.querySelectorAll('input[type=radio]');
-      radios.forEach(radio => {
-        const newRadio = radio.cloneNode(true);
-        radio.parentNode.replaceChild(newRadio, radio);
-      });
-
-      // Adiciona evento uma vez só
-      const newRadios = document.querySelectorAll('input[type=radio]');
-      newRadios.forEach(radio => {
-        radio.addEventListener('change', e => {
-          const name = e.target.name;
-          const qNum = parseInt(name.replace('q', ''));
-          const currentQ = document.getElementById(`q${qNum}`);
-          const nextQ = document.getElementById(`q${qNum + 1}`);
-
-          if(nextQ) {
-            currentQ.classList.add('hidden');
-            nextQ.classList.remove('hidden');
-          } else {
-            currentQ.classList.add('hidden');
-            submitBtn.classList.remove('hidden');
-          }
-        }, { once: true });
-      });
-    }
-
-    async function openClearModal() {
-      const password = prompt("Digite a senha para liberar a exclusão dos placares:");
-      if (password !== "bagsecreta123") {
-        alert("Senha incorreta.");
-        return;
-      }
-
-      // Buscar todos jogadores do banco
-      const playersRef = ref(db, 'players');
-      const snapshot = await new Promise((resolve) => {
-        onValue(playersRef, snap => {
-          resolve(snap);
-        }, { onlyOnce: true });
-      });
-
-      const data = snapshot.val();
-
-      if (!data || Object.keys(data).length === 0) {
-        alert("Não há placares para excluir.");
-        return;
-      }
-
-      // Limpa o container de checkboxes
+    function openClearModal() {
       playersCheckboxes.innerHTML = '';
-
-      // Cria checkbox para cada jogador
-      Object.keys(data).forEach(playerName => {
-        const label = document.createElement('label');
-        label.innerHTML = `<input type="checkbox" name="playersToDelete" value="${playerName}" /> ${playerName}`;
-        playersCheckboxes.appendChild(label);
-      });
-
-      // Mostra o modal
+      const playersRef = ref(db, 'players/');
+      onValue(playersRef, (snapshot) => {
+        playersCheckboxes.innerHTML = '';
+        if (!snapshot.exists()) {
+          playersCheckboxes.innerHTML = '<p>Nenhum placar para excluir.</p>';
+          return;
+        }
+        const players = snapshot.val();
+        for (const name in players) {
+          const player = players[name];
+          const label = document.createElement('label');
+          label.innerHTML = `<input type="checkbox" name="playerToDelete" value="${name}"> ${name} - ${player.score} pontos`;
+          playersCheckboxes.appendChild(label);
+        }
+      }, { onlyOnce: true });
       modalOverlay.style.display = 'flex';
     }
 
     clearForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-
-      const checkboxes = clearForm.querySelectorAll('input[name="playersToDelete"]:checked');
-      if (checkboxes.length === 0) {
-        alert("Selecione ao menos um placar para excluir.");
+      const checked = [...clearForm.elements['playerToDelete']].filter(i => i.checked);
+      if (checked.length === 0) {
+        alert('Selecione ao menos um placar para excluir.');
         return;
       }
-
-      if (!confirm(`Tem certeza que quer excluir ${checkboxes.length} placar(es)?`)) {
-        return;
-      }
-
-      // Excluir os selecionados
-      for (const checkbox of checkboxes) {
+      for (const checkbox of checked) {
         await removeScore(checkbox.value);
       }
-
-      alert("Placar(es) excluído(s) com sucesso!");
       modalOverlay.style.display = 'none';
-      renderLeaderboard();
+      loadLeaderboard();
+      alert('Placar(s) excluído(s) com sucesso! Jogadores excluídos poderão jogar novamente.');
     });
 
-    async function checkAnswers() {
-      const playerName = playerNameInput.value.trim();
-      if (!playerName) {
-        alert("Digite seu nome.");
+    // Carrega placar na lateral
+    function loadLeaderboard() {
+      const leaderboardList = document.getElementById('leaderboardList');
+      const playersRef = ref(db, 'players/');
+      onValue(playersRef, (snapshot) => {
+        leaderboardList.innerHTML = '';
+        if (!snapshot.exists()) {
+          leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
+          return;
+        }
+        const players = snapshot.val();
+        // Ordena por score desc
+        const sortedPlayers = Object.entries(players).sort((a,b) => b[1].score - a[1].score);
+        for (const [name, data] of sortedPlayers) {
+          const li = document.createElement('li');
+          li.textContent = `${name}: ${data.score} pontos`;
+          leaderboardList.appendChild(li);
+        }
+      });
+    }
+
+    loadLeaderboard();
+
+    async function startQuiz() {
+      const name = playerNameInput.value.trim();
+      if (!name) {
+        alert('Digite seu nome para começar.');
         return;
       }
 
-      let score = 0;
-      for(let i = 1; i <= 4; i++) {
-        const radios = document.getElementsByName(`q${i}`);
-        for(let r of radios) {
-          if(r.checked) {
-            score += parseInt(r.value);
-            break;
-          }
+      // Obtém o IP do usuário
+      currentPlayerIP = await getUserIP();
+      if (!currentPlayerIP) {
+        alert('Não foi possível obter seu IP. Tente novamente mais tarde.');
+        return;
+      }
+
+      currentPlayerName = name;
+
+      // Verifica se o IP já está no banco (se já jogou)
+      const ipRef = ref(db, 'ips/' + currentPlayerIP);
+      const ipSnap = await get(ipRef);
+      if (ipSnap.exists()) {
+        alert('Você já jogou! Não pode jogar novamente.');
+        return;
+      }
+
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('quiz').classList.remove('hidden');
+
+      // Inicializa perguntas
+      currentQuestionIndex = 0;
+      showQuestion(currentQuestionIndex);
+
+      // Oculta botão submit no começo
+      submitBtn.classList.add('hidden');
+    }
+
+    const totalQuestions = 4;
+    let currentQuestionIndex = 0;
+
+    function showQuestion(index) {
+      for(let i = 1; i <= totalQuestions; i++) {
+        const q = document.getElementById('q' + i);
+        if(i === index + 1) {
+          q.classList.remove('hidden');
+        } else {
+          q.classList.add('hidden');
         }
       }
 
-      let locationStr = "Desconhecida";
-      if (navigator.geolocation) {
-        await new Promise((resolve) => {
-          navigator.geolocation.getCurrentPosition((pos) => {
-            locationStr = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
-            resolve();
-          }, () => resolve());
-        });
+      if (index === totalQuestions - 1) {
+        submitBtn.classList.remove('hidden');
+      } else {
+        submitBtn.classList.add('hidden');
+      }
+    }
+
+    // Avança para próxima pergunta ao responder
+    document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
+      input.addEventListener('change', () => {
+        if (currentQuestionIndex < totalQuestions - 1) {
+          currentQuestionIndex++;
+          showQuestion(currentQuestionIndex);
+        }
+      });
+    });
+
+    async function checkAnswers() {
+      // Soma pontos
+      let score = 0;
+      for(let i=1; i<=totalQuestions; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (!selected) {
+          alert(`Responda a pergunta ${i} antes de continuar.`);
+          return;
+        }
+        score += Number(selected.value);
       }
 
-      await saveScore(playerName, score, locationStr);
+      // Salva resultado e IP
+      const location = window.location.href;
+      await saveScore(currentPlayerName, score, location, currentPlayerIP);
 
       document.getElementById('quiz').classList.add('hidden');
-      const finalMsg = document.getElementById('finalMessage');
-      finalMsg.classList.remove('hidden');
+      const finalMessage = document.getElementById('finalMessage');
+      finalMessage.classList.remove('hidden');
 
-      document.getElementById('scoreDisplay').textContent = `Você acertou ${score} de 4 perguntas. ${finalMessages[score] || ''}`;
+      const scoreDisplay = document.getElementById('scoreDisplay');
+      scoreDisplay.textContent = `Sua pontuação: ${score} / ${totalQuestions}`;
 
-      renderLeaderboard();
+      // Exibe mensagem final
+      finalMessage.querySelector('h2').textContent = finalMessages[score] || "Obrigado por jogar!";
+
+      // Mostra gif ao máximo de pontos
+      if(score === totalQuestions) {
+        document.getElementById('backgroundGif').style.display = 'block';
+      } else {
+        document.getElementById('backgroundGif').style.display = 'none';
+      }
+
+      loadLeaderboard();
     }
   </script>
 </body>
