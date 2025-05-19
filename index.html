@@ -16,7 +16,8 @@
       height: 100vh;
       flex-direction: column;
       text-align: center;
-      padding: 20px;
+      position: relative;
+      overflow: hidden;
     }
     .hidden { display: none; }
     button {
@@ -28,20 +29,23 @@
       font-weight: bold;
       cursor: pointer;
       font-size: 1rem;
+      z-index: 10;
+      position: relative;
     }
-    input[type="text"] {
-      padding: 10px;
-      font-size: 1rem;
-      width: 250px;
-      max-width: 80vw;
-      border-radius: 5px;
+    #clearScoreBtn {
+      margin-top: 20px;
+      padding: 10px 20px;
+      background-color: #f00;
+      color: #fff;
+      font-weight: bold;
       border: none;
-      margin-top: 15px;
+      cursor: pointer;
+      display: none; /* escondido inicialmente */
+      position: relative;
+      z-index: 10;
     }
     .question {
       margin-top: 30px;
-      max-width: 400px;
-      width: 100%;
     }
     .question p {
       margin-bottom: 10px;
@@ -50,40 +54,58 @@
       display: block;
       margin: 6px 0;
       cursor: pointer;
-      text-align: left;
+      position: relative;
+      z-index: 10;
     }
     #finalMessage a {
       color: #0f0;
       font-weight: bold;
       font-size: 1.2rem;
       text-decoration: underline;
+      position: relative;
+      z-index: 10;
     }
-    #placar {
-      margin-top: 30px;
+    #nameInput {
+      padding: 10px;
+      font-size: 1rem;
+      margin-top: 20px;
+      width: 200px;
+      text-align: center;
+      border: 2px solid #0f0;
+      background-color: #000;
       color: #0f0;
-      font-weight: bold;
-      text-align: left;
-      max-width: 300px;
-      margin-left: auto;
-      margin-right: auto;
+      outline: none;
+      position: relative;
+      z-index: 10;
     }
     #oncaGif {
       position: fixed;
-      top: 0; left: 0;
+      top: 0;
+      left: 0;
       width: 100vw;
       height: 100vh;
       object-fit: cover;
-      z-index: 9999;
+      pointer-events: none; /* deixa clique passar */
+      z-index: 1;
       display: none;
-      pointer-events: none; /* importante para liberar cliques */
+    }
+    #placar {
+      margin-top: 20px;
+      text-align: left;
+      max-width: 300px;
+      width: 100%;
+      position: relative;
+      z-index: 10;
     }
   </style>
 </head>
 <body>
+
   <div id="intro">
     <h1>"Se a bag pesar..."</h1>
     <p>Você vai aguentar ou vai correr?</p>
-    <input type="text" id="playerName" placeholder="Digite seu nome" autocomplete="off" />
+    <input type="text" id="nameInput" placeholder="Digite seu nome" maxlength="20" />
+    <br/>
     <button onclick="startQuiz()">Começar o jogo</button>
   </div>
 
@@ -124,88 +146,119 @@
   <div id="finalMessage" class="hidden">
     <h2>Você aguenta a bag.</h2>
     <p id="scoreDisplay"></p>
+    <div id="placar"></div>
+    <img id="oncaGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
     <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank">OUVIR "Se a bag pesar"</a></p>
+    <button id="clearScoreBtn" onclick="tryClearScores()">Limpar placar</button>
   </div>
 
-  <img id="oncaGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" alt="Gif da Onça" />
+<script>
+  let currentQuestion = 1;
+  let playerName = "";
 
-  <script>
-    function startQuiz() {
-      const nameInput = document.getElementById('playerName');
-      const playerName = nameInput.value.trim();
-
-      if (!playerName) {
-        alert('Por favor, digite seu nome para começar!');
-        return;
-      }
-
-      localStorage.setItem('currentPlayer', playerName);
-      document.getElementById('intro').classList.add('hidden');
-      document.getElementById('quiz').classList.remove('hidden');
+  function startQuiz() {
+    const inputName = document.getElementById('nameInput').value.trim();
+    if (!inputName) {
+      alert("Por favor, digite seu nome para começar.");
+      return;
     }
+    playerName = inputName;
+    document.getElementById('intro').classList.add('hidden');
+    document.getElementById('quiz').classList.remove('hidden');
+  }
 
-    const radios = document.querySelectorAll('input[type=radio]');
-    radios.forEach(radio => {
-      radio.addEventListener('change', (e) => {
-        const name = e.target.name;
-        const qNum = parseInt(name.replace('q', ''));
-        if (qNum < 3) {
-          document.getElementById(`q${qNum}`).classList.add('hidden');
-          document.getElementById(`q${qNum + 1}`).classList.remove('hidden');
-        } else {
-          document.getElementById('submitBtn').classList.remove('hidden');
-        }
-      });
+  const radios = document.querySelectorAll('input[type=radio]');
+  radios.forEach(radio => {
+    radio.addEventListener('change', (e) => {
+      const name = e.target.name;
+      const qNum = parseInt(name.replace('q', ''));
+      if (qNum < 3) {
+        document.getElementById(`q${qNum}`).classList.add('hidden');
+        document.getElementById(`q${qNum + 1}`).classList.remove('hidden');
+      } else {
+        document.getElementById('submitBtn').classList.remove('hidden');
+      }
     });
+  });
 
-    function checkAnswers() {
-      let score = 0;
-      for (let i = 1; i <= 3; i++) {
-        const answer = document.querySelector(`input[name=q${i}]:checked`);
-        if (answer && answer.value === '1') score++;
-      }
-
-      const playerName = localStorage.getItem('currentPlayer') || 'Anônimo';
-
-      let rankings = JSON.parse(localStorage.getItem('rankings')) || [];
-      rankings.push({ name: playerName, score: score });
-      localStorage.setItem('rankings', JSON.stringify(rankings));
-
-      document.getElementById('quiz').classList.add('hidden');
-      document.getElementById('finalMessage').classList.remove('hidden');
-
-      const scoreText = `${playerName}, você acertou ${score} de 3 perguntas.`;
-      document.getElementById('scoreDisplay').innerText = scoreText;
-
-      mostrarPlacar(rankings);
-
-      if (score === 3) {
-        const oncaGif = document.getElementById('oncaGif');
-        oncaGif.style.display = 'block';
-      }
+  function checkAnswers() {
+    let score = 0;
+    for (let i = 1; i <= 3; i++) {
+      const answer = document.querySelector(`input[name=q${i}]:checked`);
+      if (answer && answer.value === '1') score++;
     }
 
-    function mostrarPlacar(rankings) {
-      let placa = document.getElementById('placar');
-      if (!placa) {
-        placa = document.createElement('div');
-        placa.id = 'placar';
-        document.getElementById('finalMessage').appendChild(placa);
-      }
+    document.getElementById('quiz').classList.add('hidden');
+    document.getElementById('finalMessage').classList.remove('hidden');
 
-      // Ordena decrescente
-      rankings.sort((a, b) => b.score - a.score);
+    // Mostrar pontuação
+    const scoreText = `${playerName}, você acertou ${score} de 3 perguntas.`;
+    document.getElementById('scoreDisplay').innerText = scoreText;
 
-      // Limita top 5
-      const top5 = rankings.slice(0, 5);
-
-      let html = '<h3>🏆 Placar dos melhores jogadores</h3>';
-      top5.forEach((player, index) => {
-        html += `<p>${index + 1}. ${player.name} - ${player.score} acertos</p>`;
-      });
-
-      placa.innerHTML = html;
+    // Mostrar gif de fundo se acertar tudo
+    const oncaGif = document.getElementById('oncaGif');
+    if (score === 3) {
+      oncaGif.style.display = 'block';
+    } else {
+      oncaGif.style.display = 'none';
     }
-  </script>
+
+    // Salvar no placar localStorage
+    saveScore(playerName, score);
+
+    // Mostrar placar
+    showRanking();
+
+    // Mostrar botão limpar placar
+    document.getElementById('clearScoreBtn').style.display = 'inline-block';
+  }
+
+  function saveScore(name, score) {
+    let rankings = JSON.parse(localStorage.getItem('rankings')) || [];
+    rankings.push({ name, score, date: new Date().toLocaleString() });
+    // Ordenar por score decrescente
+    rankings.sort((a, b) => b.score - a.score);
+    // Manter só os 10 melhores
+    if (rankings.length > 10) rankings = rankings.slice(0, 10);
+    localStorage.setItem('rankings', JSON.stringify(rankings));
+  }
+
+  function showRanking() {
+    const rankings = JSON.parse(localStorage.getItem('rankings')) || [];
+    const placa = document.getElementById('placar');
+    if (rankings.length === 0) {
+      placa.innerHTML = "<p>Nenhum placar ainda.</p>";
+      return;
+    }
+    let html = "<h3>Placar dos líderes</h3><ol>";
+    rankings.forEach(r => {
+      html += `<li>${r.name}: ${r.score}/3 (${r.date})</li>`;
+    });
+    html += "</ol>";
+    placa.innerHTML = html;
+  }
+
+  function tryClearScores() {
+    const senha = prompt("Digite a senha para apagar o placar:");
+    const senhaCorreta = "feqzin2025"; // Coloque sua senha aqui
+
+    if (senha === senhaCorreta) {
+      localStorage.removeItem('rankings');
+      alert("Placar apagado com sucesso!");
+      const placa = document.getElementById('placar');
+      if (placa) {
+        placa.innerHTML = "<p>Placar apagado.</p>";
+      }
+    } else {
+      alert("Senha incorreta! Você não pode apagar o placar.");
+    }
+  }
+
+  // Exibe o ranking ao carregar, caso já tenha algo salvo
+  window.onload = function() {
+    showRanking();
+  };
+</script>
+
 </body>
 </html>
