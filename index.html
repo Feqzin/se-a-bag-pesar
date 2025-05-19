@@ -78,6 +78,24 @@
       margin-bottom: 10px;
     }
   </style>
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAH6bRDAGuKVdv6XDWkrwpX-prapchLYTw",
+      authDomain: "se-a-bag-pesar.firebaseapp.com",
+      databaseURL: "https://se-a-bag-pesar-default-rtdb.firebaseio.com",
+      projectId: "se-a-bag-pesar",
+      storageBucket: "se-a-bag-pesar.firebasestorage.app",
+      messagingSenderId: "925392204050",
+      appId: "1:925392204050:web:006c6d987578316d8e03cb",
+      measurementId: "G-EBEW6G9LYJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+  </script>
 </head>
 <body>
   <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
