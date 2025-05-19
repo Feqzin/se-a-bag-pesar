@@ -288,7 +288,7 @@
       }
     }
 
-    // Função para carregar o placar de líderes - VERSÃO CORRIGIDA
+    // Função para carregar o placar de líderes
     async function loadLeaderboard() {
       const leaderboardList = document.getElementById('leaderboardList');
       if (!leaderboardList) return;
@@ -306,7 +306,6 @@
           const players = snapshot.val();
           const playersArray = [];
           
-          // Converter objeto em array
           for (const key in players) {
             if (players.hasOwnProperty(key)) {
               playersArray.push({
@@ -317,16 +316,13 @@
             }
           }
           
-          // Ordenar por score (decrescente) e timestamp (crescente)
           playersArray.sort((a, b) => {
             if (b.score !== a.score) return b.score - a.score;
             return a.timestamp - b.timestamp;
           });
           
-          // Limitar aos top 10
           const topPlayers = playersArray.slice(0, 10);
           
-          // Atualizar o placar
           leaderboardList.innerHTML = '';
           if (topPlayers.length === 0) {
             leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
@@ -350,7 +346,7 @@
       }
     }
 
-    // Função para salvar a pontuação no Firebase - VERSÃO CORRIGIDA
+    // Função para salvar a pontuação no Firebase - MODIFICADA PARA CORRIGIR O PROBLEMA
     async function saveScore(name, score, ip) {
       if (!db) {
         console.warn("Firebase não disponível para salvar pontuação");
@@ -360,9 +356,14 @@
       try {
         const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
         
-        // Remove caracteres inválidos para keys do Firebase
-        const safeName = name.replace(/[.$#[\]/]/g, '-');
+        // Remove caracteres inválidos para keys do Firebase e limita o tamanho
+        const safeName = name.replace(/[.$#[\]/]/g, '-').substring(0, 20);
         
+        if (!safeName || safeName.trim() === '') {
+          console.error("Nome inválido após sanitização");
+          return false;
+        }
+
         // Salva o jogador na tabela de players
         const playerRef = ref(db, 'players/' + safeName);
         await set(playerRef, {
@@ -386,19 +387,26 @@
       }
     }
 
-    // Função startQuiz
+    // Função startQuiz - MODIFICADA PARA VALIDAR MELHOR O NOME
     async function startQuiz() {
       try {
-        const name = document.getElementById('playerName')?.value.trim() || '';
+        const nameInput = document.getElementById('playerName');
+        const name = nameInput ? nameInput.value.trim() : '';
+        
         if (!name) {
           alert('Por favor, digite seu nome para começar.');
+          return;
+        }
+
+        if (name.length > 20) {
+          alert('O nome deve ter no máximo 20 caracteres.');
           return;
         }
 
         currentPlayerIP = await getPlayerIP();
         console.log("IP do jogador:", currentPlayerIP);
 
-        // Verificação opcional de IP no Firebase
+        // Verificação de IP no Firebase
         if (db) {
           try {
             const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
@@ -429,25 +437,22 @@
 
     // Função showQuestion
     function showQuestion(index) {
-      // Esconder todas as perguntas
       document.querySelectorAll('.question').forEach(q => {
         q.classList.add('hidden');
       });
 
-      // Mostrar pergunta atual
       const currentQuestion = document.getElementById(`q${index + 1}`);
       if (currentQuestion) {
         currentQuestion.classList.remove('hidden');
       }
 
-      // Mostrar botão submit apenas na última pergunta
       const submitBtn = document.getElementById('submitBtn');
       if (submitBtn) {
         submitBtn.classList.toggle('hidden', index !== totalQuestions - 1);
       }
     }
 
-    // Função checkAnswers - VERSÃO CORRIGIDA
+    // Função checkAnswers - MODIFICADA PARA MELHOR TRATAMENTO DE ERROS
     async function checkAnswers() {
       try {
         let score = 0;
@@ -462,11 +467,20 @@
           score += parseInt(selected.value);
         }
 
+        // Validação adicional do nome
+        if (!currentPlayerName || currentPlayerName.trim() === '') {
+          alert("Nome do jogador inválido. Por favor, recomece.");
+          return;
+        }
+
         // Salva a pontuação no Firebase
+        let savedSuccessfully = false;
         if (currentPlayerName && currentPlayerIP) {
-          const saved = await saveScore(currentPlayerName, score, currentPlayerIP);
-          if (!saved) {
-            alert("Pontuação não pôde ser salva, mas você pode continuar");
+          savedSuccessfully = await saveScore(currentPlayerName, score, currentPlayerIP);
+          
+          if (!savedSuccessfully) {
+            alert("As respostas não puderam ser salvas. Verifique sua conexão e tente novamente.");
+            return;
           }
         }
 
@@ -499,7 +513,6 @@
           const gifElement = document.getElementById('backgroundGif');
           if (gifElement) {
             gifElement.style.display = 'block';
-            console.log("GIF de vitória mostrado");
           }
         }
 
@@ -517,7 +530,6 @@
       startQuiz().catch(e => console.error("Erro no clique:", e));
     });
 
-    // Avançar para próxima pergunta ao responder
     document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
       input.addEventListener('change', () => {
         if (currentQuestionIndex < totalQuestions - 1) {
@@ -527,7 +539,6 @@
       });
     });
 
-    // Vincular evento ao botão Ver resultado
     document.getElementById('submitBtn')?.addEventListener('click', checkAnswers);
 
     // Função para abrir modal de limpeza
@@ -610,13 +621,11 @@
         if (snapshot.exists()) {
           const playerData = snapshot.val();
           
-          // Remover registro de IP associado
           if (playerData.ip) {
             const ipRef = ref(db, 'ips/' + playerData.ip);
             await remove(ipRef);
           }
           
-          // Remover jogador
           await remove(playerRef);
           return true;
         }
@@ -637,12 +646,10 @@
       }
     });
 
-    // Event listener para cancelar limpeza
     document.getElementById('cancelClear')?.addEventListener('click', () => {
       hideElement('modalOverlay');
     });
 
-    // Submit do formulário de limpeza
     document.getElementById('clearForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
       const checkboxes = [...document.querySelectorAll('input[name="playerToDelete"]:checked')];
@@ -671,7 +678,7 @@
       loadLeaderboard();
     });
 
-    // Inicialização - CARREGA O PLACAR AO INICIAR
+    // Inicialização
     document.addEventListener('DOMContentLoaded', () => {
       loadLeaderboard();
       console.log("Jogo inicializado e pronto");
