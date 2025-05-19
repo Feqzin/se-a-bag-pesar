@@ -210,4 +210,62 @@
     if (score === 4) {
       oncaGif.style.display = 'block';
     } else {
-      oncaGif.style.display
+      oncaGif.style.display = 'none';
+    }
+
+    // Salvar no placar localStorage
+    saveScore(playerName, score);
+
+    // Mostrar placar
+    showRanking();
+
+    // Mostrar botão limpar placar
+    document.getElementById('clearScoreBtn').style.display = 'inline-block';
+  }
+
+  function saveScore(name, score) {
+    let rankings = JSON.parse(localStorage.getItem('rankings')) || [];
+    rankings.push({ name, score, date: new Date().toLocaleString() });
+    rankings.sort((a, b) => b.score - a.score);
+    if (rankings.length > 10) rankings = rankings.slice(0, 10);
+    localStorage.setItem('rankings', JSON.stringify(rankings));
+  }
+
+  function showRanking() {
+    const rankings = JSON.parse(localStorage.getItem('rankings')) || [];
+    const placa = document.getElementById('placar');
+    if (rankings.length === 0) {
+      placa.innerHTML = "<p>Nenhum placar ainda.</p>";
+      return;
+    }
+    let html = "<h3>Placar dos líderes</h3><ol>";
+    rankings.forEach(r => {
+      html += `<li>${r.name}: ${r.score}/4 (${r.date})</li>`;
+    });
+    html += "</ol>";
+    placa.innerHTML = html;
+  }
+
+  function tryClearScores() {
+    const senha = prompt("Digite a senha para apagar o placar:");
+    const senhaCorreta = "feqzin2025";
+
+    if (senha === senhaCorreta) {
+      localStorage.removeItem('rankings');
+      alert("Placar apagado com sucesso!");
+      const placa = document.getElementById('placar');
+      if (placa) {
+        placa.innerHTML = "<p>Placar apagado.</p>";
+      }
+    } else {
+      alert("Senha incorreta! Você não pode apagar o placar.");
+    }
+  }
+
+  window.onload = function() {
+    showRanking();
+  };
+</script>
+
+</body>
+</html>
