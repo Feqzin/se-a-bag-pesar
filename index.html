@@ -78,6 +78,46 @@
     #leaderboard li {
       margin-bottom: 10px;
     }
+
+    /* Modal estilo simples */
+    #modalOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.75);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #modalContent {
+      background-color: #111;
+      padding: 20px;
+      border: 2px solid #0f0;
+      max-height: 80vh;
+      overflow-y: auto;
+      width: 350px;
+      border-radius: 8px;
+    }
+    #modalContent h2 {
+      margin-top: 0;
+      color: #0f0;
+      font-size: 1.5rem;
+    }
+    #modalContent label {
+      display: block;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    #modalButtons {
+      margin-top: 20px;
+      text-align: right;
+    }
+    #modalButtons button {
+      margin-left: 10px;
+    }
   </style>
 </head>
 <body>
@@ -152,6 +192,20 @@
     </div>
   </div>
 
+  <!-- Modal para limpar placares -->
+  <div id="modalOverlay">
+    <div id="modalContent">
+      <h2>Selecionar placares para excluir</h2>
+      <form id="clearForm">
+        <div id="playersCheckboxes" style="max-height: 300px; overflow-y: auto;"></div>
+        <div id="modalButtons">
+          <button type="button" id="cancelClear">Cancelar</button>
+          <button type="submit" id="confirmClear">Excluir selecionados</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
@@ -180,12 +234,29 @@
       0: "Bora tentar de novo!"
     };
 
+    const startBtn = document.getElementById('startBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const playerNameInput = document.getElementById('playerName');
+
+    const modalOverlay = document.getElementById('modalOverlay');
+    const playersCheckboxes = document.getElementById('playersCheckboxes');
+    const clearForm = document.getElementById('clearForm');
+    const cancelClear = document.getElementById('cancelClear');
+
+    startBtn.addEventListener('click', startQuiz);
+    clearBtn.addEventListener('click', openClearModal);
+    submitBtn.addEventListener('click', checkAnswers);
+    cancelClear.addEventListener('click', () => {
+      modalOverlay.style.display = 'none';
+    });
+
     async function saveScore(name, score, location) {
       const playerRef = ref(db, 'players/' + name);
       await set(playerRef, { score, location });
     }
 
-    async function clearScore(name) {
+    async function removeScore(name) {
       const playerRef = ref(db, 'players/' + name);
       await remove(playerRef);
     }
@@ -211,16 +282,7 @@
 
     renderLeaderboard();
 
-    const startBtn = document.getElementById('startBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    const playerNameInput = document.getElementById('playerName');
-
-    startBtn.addEventListener('click', startQuiz);
-    clearBtn.addEventListener('click', clearMyScore);
-    submitBtn.addEventListener('click', checkAnswers);
-
-    function startQuiz() {
+    async function startQuiz() {
       const playerName = playerNameInput.value.trim();
       if (!playerName) {
         alert("Digite seu nome para começar.");
@@ -246,12 +308,11 @@
       // Remove antigos event listeners antes de adicionar novos
       const radios = document.querySelectorAll('input[type=radio]');
       radios.forEach(radio => {
-        // Clone para remover event listeners antigos
         const newRadio = radio.cloneNode(true);
         radio.parentNode.replaceChild(newRadio, radio);
       });
 
-      // Agora adiciona evento uma vez
+      // Adiciona evento uma vez só
       const newRadios = document.querySelectorAll('input[type=radio]');
       newRadios.forEach(radio => {
         radio.addEventListener('change', e => {
@@ -271,25 +332,64 @@
       });
     }
 
-    async function clearMyScore() {
-      const password = prompt("Digite a senha para limpar seu placar:");
+    async function openClearModal() {
+      const password = prompt("Digite a senha para liberar a exclusão dos placares:");
       if (password !== "bagsecreta123") {
         alert("Senha incorreta.");
         return;
       }
-      const name = playerNameInput.value.trim();
-      if (!name) {
-        alert("Digite seu nome para limpar seu placar.");
+
+      // Buscar todos jogadores do banco
+      const playersRef = ref(db, 'players');
+      const snapshot = await new Promise((resolve) => {
+        onValue(playersRef, snap => {
+          resolve(snap);
+        }, { onlyOnce: true });
+      });
+
+      const data = snapshot.val();
+
+      if (!data || Object.keys(data).length === 0) {
+        alert("Não há placares para excluir.");
         return;
       }
-      try {
-        await clearScore(name);
-        alert("Seu placar foi limpo.");
-        renderLeaderboard();
-      } catch {
-        alert("Erro ao limpar placar.");
-      }
+
+      // Limpa o container de checkboxes
+      playersCheckboxes.innerHTML = '';
+
+      // Cria checkbox para cada jogador
+      Object.keys(data).forEach(playerName => {
+        const label = document.createElement('label');
+        label.innerHTML = `<input type="checkbox" name="playersToDelete" value="${playerName}" /> ${playerName}`;
+        playersCheckboxes.appendChild(label);
+      });
+
+      // Mostra o modal
+      modalOverlay.style.display = 'flex';
     }
+
+    clearForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+
+      const checkboxes = clearForm.querySelectorAll('input[name="playersToDelete"]:checked');
+      if (checkboxes.length === 0) {
+        alert("Selecione ao menos um placar para excluir.");
+        return;
+      }
+
+      if (!confirm(`Tem certeza que quer excluir ${checkboxes.length} placar(es)?`)) {
+        return;
+      }
+
+      // Excluir os selecionados
+      for (const checkbox of checkboxes) {
+        await removeScore(checkbox.value);
+      }
+
+      alert("Placar(es) excluído(s) com sucesso!");
+      modalOverlay.style.display = 'none';
+      renderLeaderboard();
+    });
 
     async function checkAnswers() {
       const playerName = playerNameInput.value.trim();
