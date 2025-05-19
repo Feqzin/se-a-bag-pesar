@@ -3,20 +3,33 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Se a bag pesar</title>
+  <title>Se a bag pesar - Firebase</title>
   <style>
     body {
-      margin: 0;
-      font-family: 'Courier New', Courier, monospace;
-      background-color: #000;
-      color: #0f0;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      padding: 20px;
+      margin: 0; font-family: 'Courier New', monospace;
+      background-color: #000; color: #0f0;
+      display: flex; justify-content: center; align-items: flex-start;
+      min-height: 100vh; padding: 20px;
     }
-    .hidden { display: none; }
+    #container {
+      display: flex; width: 100%; max-width: 1000px;
+    }
+    #mainContent {
+      max-width: 600px;
+    }
+    #leaderboard {
+      width: 300px;
+      margin-left: 40px;
+    }
+    #leaderboard h3 {
+      color: #0f0;
+    }
+    #leaderboard ul {
+      list-style: none; padding: 0;
+    }
+    #leaderboard li {
+      margin-bottom: 10px;
+    }
     button {
       margin-top: 20px;
       padding: 12px 24px;
@@ -27,297 +40,280 @@
       cursor: pointer;
       font-size: 1rem;
     }
-    .question {
-      margin-top: 30px;
-    }
-    .question p {
-      margin-bottom: 10px;
-    }
-    .answers label {
-      display: block;
-      margin: 6px 0;
-      cursor: pointer;
-    }
-    #finalMessage a {
-      color: #0f0;
-      font-weight: bold;
-      font-size: 1.2rem;
-      text-decoration: underline;
-    }
+    .hidden { display: none; }
     #backgroundGif {
       display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: -1;
-      opacity: 0.3;
-      pointer-events: none; /* para não bloquear cliques */
-    }
-    #container {
-      display: flex;
-      justify-content: center;
-      width: 100%;
-      max-width: 1000px;
-    }
-    #mainContent {
-      max-width: 600px;
-      text-align: center;
-    }
-    #leaderboard {
-      width: 280px;
-      margin-left: 40px;
-      text-align: left;
-    }
-    #leaderboard h3 {
-      color: #0f0;
-      margin-bottom: 10px;
-    }
-    #leaderboard ul {
-      list-style: none;
-      padding: 0;
-      max-height: 80vh;
-      overflow-y: auto;
-    }
-    #leaderboard li {
-      margin-bottom: 10px;
-      font-size: 0.9rem;
+      position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+      object-fit: cover; z-index: -1; opacity: 0.3;
     }
   </style>
 </head>
 <body>
-  <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
 
-  <div id="container">
-    <div id="mainContent">
-      <div id="intro">
-        <h1>"Se a bag pesar..."</h1>
-        <p>Você vai aguentar ou vai correr?</p>
-        <input type="text" id="playerName" placeholder="Digite seu nome" autocomplete="off" />
-        <br />
-        <button id="startBtn">Começar o jogo</button>
-        <br />
-        <button id="clearBtn">Limpar meu placar</button>
-      </div>
+<img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
 
-      <div id="quiz" class="hidden">
-        <div class="question" id="q1">
-          <p>1. Qual animal aparece como símbolo de lucro no som?</p>
-          <div class="answers">
-            <label><input type="radio" name="q1" value="0" /> Tigre</label>
-            <label><input type="radio" name="q1" value="1" /> Onça</label>
-            <label><input type="radio" name="q1" value="0" /> Cobra</label>
-            <label><input type="radio" name="q1" value="0" /> Corvo</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q2">
-          <p>2. O que o “Magikarp” representa na letra?</p>
-          <div class="answers">
-            <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
-            <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
-            <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
-            <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q3">
-          <p>3. O que acontece “se a bag pesar”?</p>
-          <div class="answers">
-            <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
-            <label><input type="radio" name="q3" value="0" /> Eu corro</label>
-            <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
-            <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q4">
-          <p>4. Quando será lançada a música?</p>
-          <div class="answers">
-            <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
-            <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
-            <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
-            <label><input type="radio" name="q4" value="0" /> 01-05-25</label>
-          </div>
-        </div>
-
-        <button class="hidden" id="submitBtn">Ver resultado</button>
-      </div>
-
-      <div id="finalMessage" class="hidden">
-        <h2>Você aguenta a bag.</h2>
-        <p id="scoreDisplay"></p>
-        <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank" rel="noopener noreferrer">OUVIR "Se a bag pesar"</a></p>
-      </div>
+<div id="container">
+  <div id="mainContent">
+    <div id="intro">
+      <h1>"Se a bag pesar..."</h1>
+      <p>Você vai aguentar ou vai correr?</p>
+      <input type="text" id="playerName" placeholder="Digite seu nome" />
+      <br />
+      <button id="startBtn">Começar o jogo</button>
+      <br />
+      <button id="clearBtn">Limpar meu placar (senha)</button>
     </div>
 
-    <div id="leaderboard">
-      <h3>Placar de líderes</h3>
-      <ul id="leaderboardList"></ul>
+    <div id="quiz" class="hidden">
+      <!-- Perguntas aqui, mesma estrutura do seu código atual -->
+      <div class="question" id="q1">
+        <p>1. Qual animal aparece como símbolo de lucro no som?</p>
+        <div class="answers">
+          <label><input type="radio" name="q1" value="0" /> Tigre</label>
+          <label><input type="radio" name="q1" value="1" /> Onça</label>
+          <label><input type="radio" name="q1" value="0" /> Cobra</label>
+          <label><input type="radio" name="q1" value="0" /> Corvo</label>
+        </div>
+      </div>
+
+      <div class="question hidden" id="q2">
+        <p>2. O que o “Magikarp” representa na letra?</p>
+        <div class="answers">
+          <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
+          <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
+          <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
+          <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
+        </div>
+      </div>
+
+      <div class="question hidden" id="q3">
+        <p>3. O que acontece “se a bag pesar”?</p>
+        <div class="answers">
+          <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
+          <label><input type="radio" name="q3" value="0" /> Eu corro</label>
+          <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
+          <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
+        </div>
+      </div>
+
+      <div class="question hidden" id="q4">
+        <p>4. Quando será lançada a música?</p>
+        <div class="answers">
+          <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
+          <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
+          <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
+          <label><input type="radio" name="q4" value="0" /> 01-05-25</label>
+        </div>
+      </div>
+
+      <button class="hidden" id="submitBtn">Ver resultado</button>
+    </div>
+
+    <div id="finalMessage" class="hidden">
+      <h2>Você aguenta a bag.</h2>
+      <p id="scoreDisplay"></p>
+      <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank" style="color:#0f0; font-weight:bold;">OUVIR "Se a bag pesar"</a></p>
     </div>
   </div>
 
-  <script>
-    // Mostrar próxima pergunta e botão enviar
-    document.querySelectorAll('input[type=radio]').forEach(radio => {
-      radio.addEventListener('change', e => {
-        const name = e.target.name;
-        const qNum = parseInt(name.replace('q', ''));
-        const nextQ = document.getElementById(`q${qNum + 1}`);
-        if (nextQ) {
-          document.getElementById(`q${qNum}`).classList.add('hidden');
-          nextQ.classList.remove('hidden');
-        } else {
-          document.getElementById('submitBtn').classList.remove('hidden');
+  <div id="leaderboard">
+    <h3>Placar de líderes</h3>
+    <ul id="leaderboardList"></ul>
+  </div>
+</div>
+
+<!-- Firebase SDKs -->
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
+
+<script>
+  // Config do seu projeto Firebase (pegue no console Firebase)
+  const firebaseConfig = {
+    apiKey: "SUA_API_KEY_AQUI",
+    authDomain: "SEU_PROJETO.firebaseapp.com",
+    databaseURL: "https://SEU_PROJETO.firebaseio.com",
+    projectId: "SEU_PROJETO",
+    storageBucket: "SEU_PROJETO.appspot.com",
+    messagingSenderId: "SEU_SENDER_ID",
+    appId: "SEU_APP_ID"
+  };
+
+  // Inicializa Firebase
+  firebase.initializeApp(firebaseConfig);
+  const db = firebase.database();
+
+  // Elementos
+  const playerNameInput = document.getElementById('playerName');
+  const startBtn = document.getElementById('startBtn');
+  const clearBtn = document.getElementById('clearBtn');
+  const quizDiv = document.getElementById('quiz');
+  const introDiv = document.getElementById('intro');
+  const submitBtn = document.getElementById('submitBtn');
+  const finalMessage = document.getElementById('finalMessage');
+  const scoreDisplay = document.getElementById('scoreDisplay');
+  const backgroundGif = document.getElementById('backgroundGif');
+  const leaderboardList = document.getElementById('leaderboardList');
+
+  let currentIP = null;
+  let userHasPlayed = false;
+
+  // Função para pegar IP público via API (usa ipapi.co)
+  async function fetchIP() {
+    try {
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
+      return data.ip;
+    } catch {
+      return null;
+    }
+  }
+
+  // Função para pegar cidade pelo IP (ipapi.co)
+  async function fetchCity() {
+    try {
+      const res = await fetch('https://ipapi.co/json/');
+      const data = await res.json();
+      return data.city || 'Localização desconhecida';
+    } catch {
+      return 'Localização desconhecida';
+    }
+  }
+
+  // Carregar IP ao iniciar
+  async function init() {
+    currentIP = await fetchIP();
+    if (!currentIP) {
+      alert('Não foi possível obter seu IP. O jogo pode não funcionar corretamente.');
+    }
+    // Carregar placar e verificar se IP já jogou
+    db.ref('players').once('value').then(snapshot => {
+      const players = snapshot.val() || {};
+      for (const key in players) {
+        if (players[key].ip === currentIP) {
+          userHasPlayed = true;
+          break;
         }
-      });
+      }
+      renderLeaderboard(players);
+    });
+  }
+
+  // Renderizar placar
+  function renderLeaderboard(playersObj) {
+    leaderboardList.innerHTML = '';
+    // Convert object para array e ordenar por score decrescente
+    const players = Object.values(playersObj || {}).sort((a, b) => b.score - a.score);
+    players.forEach(p => {
+      const li = document.createElement('li');
+      li.textContent = `${p.name} - ${p.score}/4 (${p.location})`;
+      leaderboardList.appendChild(li);
+    });
+  }
+
+  // Começar quiz
+  startBtn.addEventListener('click', () => {
+    const name = playerNameInput.value.trim();
+    if (!name) {
+      alert('Digite seu nome para começar.');
+      return;
+    }
+    if (userHasPlayed) {
+      alert('Você já jogou uma vez. Só pode jogar uma vez por IP.');
+      return;
+    }
+    introDiv.classList.add('hidden');
+    quizDiv.classList.remove('hidden');
+  });
+
+  // Quando muda resposta, mostra próxima pergunta
+  document.querySelectorAll('input[type=radio]').forEach(radio => {
+    radio.addEventListener('change', e => {
+      const name = e.target.name;
+      const qNum = parseInt(name.replace('q', ''));
+      const nextQ = document.getElementById(`q${qNum + 1}`);
+      if (nextQ) {
+        document.getElementById(`q${qNum}`).classList.add('hidden');
+        nextQ.classList.remove('hidden');
+      } else {
+        submitBtn.classList.remove('hidden');
+      }
+    });
+  });
+
+  // Checar respostas
+  submitBtn.addEventListener('click', async () => {
+    let score = 0;
+    for (let i = 1; i <= 4; i++) {
+      const answer = document.querySelector(`input[name=q${i}]:checked`);
+      if (answer && answer.value === '1') score++;
+    }
+    const name = playerNameInput.value.trim();
+    if (!name) return;
+
+    const city = await fetchCity();
+
+    // Salvar no Firebase
+    const newPlayerRef = db.ref('players').push();
+    await newPlayerRef.set({
+      name,
+      score,
+      ip: currentIP,
+      location: city,
+      timestamp: Date.now()
     });
 
-    document.getElementById('startBtn').addEventListener('click', startQuiz);
-    document.getElementById('clearBtn').addEventListener('click', clearMyScore);
-    document.getElementById('submitBtn').addEventListener('click', checkAnswers);
+    // Atualizar placar e status
+    userHasPlayed = true;
+    renderLeaderboard(await db.ref('players').once('value').then(s => s.val()));
 
-    async function getIP() {
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        if (!res.ok) throw new Error('ipapi error');
-        const data = await res.json();
-        if (data.ip) return data.ip;
-      } catch (e) {
-        try {
-          const res2 = await fetch('https://api.ipify.org?format=json');
-          if (!res2.ok) throw new Error('ipify error');
-          const data2 = await res2.json();
-          if (data2.ip) return data2.ip;
-        } catch (e2) {
-          return 'unknown';
-        }
-      }
+    quizDiv.classList.add('hidden');
+    finalMessage.classList.remove('hidden');
+    scoreDisplay.innerText = `Você acertou ${score} de 4 perguntas.`;
+
+    if (score === 4) {
+      backgroundGif.style.display = 'block';
+    }
+  });
+
+  // Limpar placar próprio com senha, remove do Firebase e libera IP
+  clearBtn.addEventListener('click', async () => {
+    const password = prompt('Digite a senha para limpar seu placar:');
+    if (password !== 'bagsecreta123') {
+      alert('Senha incorreta.');
+      return;
+    }
+    const name = playerNameInput.value.trim();
+    if (!name) {
+      alert('Digite seu nome para limpar o placar.');
+      return;
     }
 
-    async function getCity() {
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        if (!res.ok) throw new Error('ipapi city error');
-        const data = await res.json();
-        return data.city || 'Local desconhecido';
-      } catch {
-        return 'Local desconhecido';
-      }
+    const snapshot = await db.ref('players').once('value');
+    const players = snapshot.val() || {};
+
+    // Procura o jogador por nome e IP (para remover exato)
+    const keyToRemove = Object.entries(players).find(([key, val]) => val.name === name && val.ip === currentIP);
+
+    if (!keyToRemove) {
+      alert('Placar não encontrado para esse nome e IP.');
+      return;
     }
 
-    async function startQuiz() {
-      const playerName = document.getElementById('playerName').value.trim();
-      if (!playerName) {
-        alert("Digite seu nome para começar.");
-        return;
-      }
+    await db.ref(`players/${keyToRemove[0]}`).remove();
 
-      let userIP = await getIP();
+    alert('Seu placar foi removido e seu IP liberado para jogar de novo.');
 
-      if (userIP === 'unknown') {
-        alert("Não foi possível obter seu IP. O jogo será liberado, mas seu progresso pode não ser salvo corretamente.");
-      }
+    // Atualizar status local e placar
+    userHasPlayed = false;
+    renderLeaderboard(await db.ref('players').once('value').then(s => s.val()));
+    introDiv.classList.remove('hidden');
+    finalMessage.classList.add('hidden');
+    quizDiv.classList.add('hidden');
+  });
 
-      let playedIPs = JSON.parse(localStorage.getItem('playedIPs') || '[]');
-      if (playedIPs.includes(userIP)) {
-        alert("Você já jogou uma vez. Não pode jogar de novo.");
-        return;
-      }
+  // Inicia app
+  init();
+</script>
 
-      playedIPs.push(userIP);
-      localStorage.setItem('playedIPs', JSON.stringify(playedIPs));
-
-      localStorage.setItem('currentPlayerName', playerName);
-      document.getElementById('intro').classList.add('hidden');
-      document.getElementById('quiz').classList.remove('hidden');
-      // Reset perguntas para a 1ª
-      for (let i = 1; i <=4; i++) {
-        document.getElementById(`q${i}`).classList.toggle('hidden', i !== 1);
-      }
-      document.getElementById('submitBtn').classList.add('hidden');
-    }
-
-    async function checkAnswers() {
-      let score = 0;
-      for (let i = 1; i <= 4; i++) {
-        const answer = document.querySelector(`input[name=q${i}]:checked`);
-        if (answer && answer.value === '1') score++;
-      }
-
-      const name = localStorage.getItem('currentPlayerName');
-      if (!name) return;
-
-      let userIP = await getIP();
-      const city = await getCity();
-
-      let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-      const exists = leaderboard.find(entry => entry.name === name);
-
-      if (!exists) {
-        leaderboard.push({ name, score, location: city, ip: userIP });
-      } else {
-        exists.score = score;
-        exists.location = city;
-        exists.ip = userIP;
-      }
-      localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-      renderLeaderboard();
-
-      document.getElementById('quiz').classList.add('hidden');
-      document.getElementById('finalMessage').classList.remove('hidden');
-      document.getElementById('scoreDisplay').textContent = `Você acertou ${score} de 4.`;
-
-      if (score >= 3) {
-        document.getElementById('backgroundGif').style.display = 'block';
-      } else {
-        document.getElementById('backgroundGif').style.display = 'none';
-      }
-    }
-
-    function renderLeaderboard() {
-      let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-      leaderboard.sort((a, b) => b.score - a.score);
-      const ul = document.getElementById('leaderboardList');
-      ul.innerHTML = '';
-      leaderboard.forEach(entry => {
-        const loc = entry.location || 'Local desconhecido';
-        ul.innerHTML += `<li>${entry.name} - ${entry.score} pts - ${loc}</li>`;
-      });
-    }
-
-    function clearMyScore() {
-      const name = document.getElementById('playerName').value.trim();
-      if (!name) {
-        alert("Digite seu nome para limpar o placar.");
-        return;
-      }
-      const pwd = prompt("Digite a senha para limpar seu placar:");
-      if (pwd !== "bagsecreta123") {
-        alert("Senha incorreta!");
-        return;
-      }
-
-      let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-      const newBoard = leaderboard.filter(entry => entry.name.toLowerCase() !== name.toLowerCase());
-      localStorage.setItem('leaderboard', JSON.stringify(newBoard));
-
-      // Liberar IP da lista de jogaram
-      let playedIPs = JSON.parse(localStorage.getItem('playedIPs') || '[]');
-      const removed = leaderboard.find(entry => entry.name.toLowerCase() === name.toLowerCase());
-      if (removed && removed.ip) {
-        playedIPs = playedIPs.filter(ip => ip !== removed.ip);
-        localStorage.setItem('playedIPs', JSON.stringify(playedIPs));
-      }
-
-      alert("Seu placar foi limpo e você poderá jogar novamente.");
-      renderLeaderboard();
-    }
-
-    // No carregamento inicial
-    renderLeaderboard();
-  </script>
 </body>
 </html>
