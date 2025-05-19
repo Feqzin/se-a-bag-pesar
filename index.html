@@ -2,7 +2,7 @@
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Se a bag pesar</title>
   <style>
     body {
@@ -54,11 +54,13 @@
       object-fit: cover;
       z-index: -1;
       opacity: 0.3;
+      pointer-events: none; /* para não bloquear cliques */
     }
     #container {
       display: flex;
       justify-content: center;
       width: 100%;
+      max-width: 1000px;
     }
     #mainContent {
       max-width: 600px;
@@ -67,18 +69,21 @@
     #leaderboard {
       width: 280px;
       margin-left: 40px;
-      color: #0f0;
+      text-align: left;
     }
     #leaderboard h3 {
       color: #0f0;
-      margin-top: 0;
+      margin-bottom: 10px;
     }
     #leaderboard ul {
       list-style: none;
       padding: 0;
+      max-height: 80vh;
+      overflow-y: auto;
     }
     #leaderboard li {
-      margin-bottom: 12px;
+      margin-bottom: 10px;
+      font-size: 0.9rem;
     }
   </style>
 </head>
@@ -96,6 +101,7 @@
         <br />
         <button id="clearBtn">Limpar meu placar</button>
       </div>
+
       <div id="quiz" class="hidden">
         <div class="question" id="q1">
           <p>1. Qual animal aparece como símbolo de lucro no som?</p>
@@ -139,10 +145,11 @@
 
         <button class="hidden" id="submitBtn">Ver resultado</button>
       </div>
+
       <div id="finalMessage" class="hidden">
         <h2>Você aguenta a bag.</h2>
         <p id="scoreDisplay"></p>
-        <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank" style="color:#0f0;">OUVIR "Se a bag pesar"</a></p>
+        <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank" rel="noopener noreferrer">OUVIR "Se a bag pesar"</a></p>
       </div>
     </div>
 
@@ -153,8 +160,8 @@
   </div>
 
   <script>
-    const radios = document.querySelectorAll('input[type=radio]');
-    radios.forEach(radio => {
+    // Mostrar próxima pergunta e botão enviar
+    document.querySelectorAll('input[type=radio]').forEach(radio => {
       radio.addEventListener('change', e => {
         const name = e.target.name;
         const qNum = parseInt(name.replace('q', ''));
@@ -172,6 +179,35 @@
     document.getElementById('clearBtn').addEventListener('click', clearMyScore);
     document.getElementById('submitBtn').addEventListener('click', checkAnswers);
 
+    async function getIP() {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (!res.ok) throw new Error('ipapi error');
+        const data = await res.json();
+        if (data.ip) return data.ip;
+      } catch (e) {
+        try {
+          const res2 = await fetch('https://api.ipify.org?format=json');
+          if (!res2.ok) throw new Error('ipify error');
+          const data2 = await res2.json();
+          if (data2.ip) return data2.ip;
+        } catch (e2) {
+          return 'unknown';
+        }
+      }
+    }
+
+    async function getCity() {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        if (!res.ok) throw new Error('ipapi city error');
+        const data = await res.json();
+        return data.city || 'Local desconhecido';
+      } catch {
+        return 'Local desconhecido';
+      }
+    }
+
     async function startQuiz() {
       const playerName = document.getElementById('playerName').value.trim();
       if (!playerName) {
@@ -179,82 +215,29 @@
         return;
       }
 
-      // Obtém o IP do usuário
-      let userIP = 'unknown';
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        const data = await res.json();
-        userIP = data.ip || 'unknown';
-      } catch {
-        alert("Não foi possível obter seu IP. Tente novamente.");
-        return;
+      let userIP = await getIP();
+
+      if (userIP === 'unknown') {
+        alert("Não foi possível obter seu IP. O jogo será liberado, mas seu progresso pode não ser salvo corretamente.");
       }
 
-      // Checa se o IP já jogou
       let playedIPs = JSON.parse(localStorage.getItem('playedIPs') || '[]');
       if (playedIPs.includes(userIP)) {
         alert("Você já jogou uma vez. Não pode jogar de novo.");
         return;
       }
 
-      // Salva o IP para bloquear nova jogada
       playedIPs.push(userIP);
       localStorage.setItem('playedIPs', JSON.stringify(playedIPs));
 
       localStorage.setItem('currentPlayerName', playerName);
       document.getElementById('intro').classList.add('hidden');
       document.getElementById('quiz').classList.remove('hidden');
-    }
-
-    function clearMyScore() {
-      const password = prompt("Digite a senha para limpar seu placar:");
-      if (password === "bagsecreta123") {
-        const name = document.getElementById('playerName').value.trim();
-        if (!name) {
-          alert("Digite seu nome para limpar seu placar.");
-          return;
-        }
-        let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
-        let playedIPs = JSON.parse(localStorage.getItem('playedIPs') || '[]');
-
-        // Remove o jogador do placar
-        leaderboard = leaderboard.filter(entry => entry.name !== name);
-
-        // Remove o IP do jogador (se existir)
-        // Para isso, tentamos achar IP do usuário pela cidade ou pelo nome?
-        // Como IP só está salvo no array playedIPs, que é só uma lista de IPs,
-        // precisaremos remover o IP associado ao nome.
-        // Vamos salvar IP junto com o nome na leaderboard para facilitar isso.
-
-        // Porém, ainda não salvamos o IP na leaderboard,
-        // vamos ajustar na função checkAnswers para salvar o IP também.
-
-        // Aqui removemos o IP do jogador do playedIPs com base no nome
-
-        // Atualizar para remover o IP do jogador:
-        let currentIP = 'unknown';
-        fetch('https://ipapi.co/json/')
-          .then(res => res.json())
-          .then(data => {
-            currentIP = data.ip || 'unknown';
-
-            // Remove o IP do array de playedIPs
-            playedIPs = playedIPs.filter(ip => ip !== currentIP);
-
-            localStorage.setItem('playedIPs', JSON.stringify(playedIPs));
-            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-            renderLeaderboard();
-            alert("Seu placar foi limpo e você poderá jogar novamente.");
-          })
-          .catch(() => {
-            alert("Erro ao limpar IP. Seu placar foi limpo, mas IP não foi removido.");
-            localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-            renderLeaderboard();
-          });
-
-      } else {
-        alert("Senha incorreta.");
+      // Reset perguntas para a 1ª
+      for (let i = 1; i <=4; i++) {
+        document.getElementById(`q${i}`).classList.toggle('hidden', i !== 1);
       }
+      document.getElementById('submitBtn').classList.add('hidden');
     }
 
     async function checkAnswers() {
@@ -264,19 +247,11 @@
         if (answer && answer.value === '1') score++;
       }
 
-      const name = document.getElementById('playerName').value.trim();
+      const name = localStorage.getItem('currentPlayerName');
       if (!name) return;
 
-      let userIP = 'unknown';
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        const data = await res.json();
-        userIP = data.ip || 'unknown';
-      } catch {
-        userIP = 'unknown';
-      }
-
-      const city = await getCityFromIP();
+      let userIP = await getIP();
+      const city = await getCity();
 
       let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
       const exists = leaderboard.find(entry => entry.name === name);
@@ -284,7 +259,6 @@
       if (!exists) {
         leaderboard.push({ name, score, location: city, ip: userIP });
       } else {
-        // Se já existe, atualiza o score e localização
         exists.score = score;
         exists.location = city;
         exists.ip = userIP;
@@ -296,7 +270,6 @@
       document.getElementById('finalMessage').classList.remove('hidden');
       document.getElementById('scoreDisplay').textContent = `Você acertou ${score} de 4.`;
 
-      // Mostrar GIF de fundo se acertou >=3
       if (score >= 3) {
         document.getElementById('backgroundGif').style.display = 'block';
       } else {
@@ -310,22 +283,40 @@
       const ul = document.getElementById('leaderboardList');
       ul.innerHTML = '';
       leaderboard.forEach(entry => {
-        const li = document.createElement('li');
-        li.textContent = `${entry.name} - ${entry.score} pts - ${entry.location || 'Local desconhecido'}`;
-        ul.appendChild(li);
+        const loc = entry.location || 'Local desconhecido';
+        ul.innerHTML += `<li>${entry.name} - ${entry.score} pts - ${loc}</li>`;
       });
     }
 
-    async function getCityFromIP() {
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        const data = await res.json();
-        return data.city || 'Local desconhecido';
-      } catch {
-        return 'Local desconhecido';
+    function clearMyScore() {
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) {
+        alert("Digite seu nome para limpar o placar.");
+        return;
       }
+      const pwd = prompt("Digite a senha para limpar seu placar:");
+      if (pwd !== "bagsecreta123") {
+        alert("Senha incorreta!");
+        return;
+      }
+
+      let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+      const newBoard = leaderboard.filter(entry => entry.name.toLowerCase() !== name.toLowerCase());
+      localStorage.setItem('leaderboard', JSON.stringify(newBoard));
+
+      // Liberar IP da lista de jogaram
+      let playedIPs = JSON.parse(localStorage.getItem('playedIPs') || '[]');
+      const removed = leaderboard.find(entry => entry.name.toLowerCase() === name.toLowerCase());
+      if (removed && removed.ip) {
+        playedIPs = playedIPs.filter(ip => ip !== removed.ip);
+        localStorage.setItem('playedIPs', JSON.stringify(playedIPs));
+      }
+
+      alert("Seu placar foi limpo e você poderá jogar novamente.");
+      renderLeaderboard();
     }
 
+    // No carregamento inicial
     renderLeaderboard();
   </script>
 </body>
