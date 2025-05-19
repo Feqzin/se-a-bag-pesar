@@ -155,19 +155,11 @@
 
   async function fetchIP() {
     try {
-      let res = await fetch('https://api.ipify.org?format=json');
-      if (!res.ok) throw new Error('ipify falhou');
-      let data = await res.json();
+      const res = await fetch('https://api.ipify.org?format=json');
+      const data = await res.json();
       return data.ip;
     } catch {
-      try {
-        let res2 = await fetch('https://ipapi.co/ip');
-        if (!res2.ok) throw new Error('ipapi falhou');
-        let ipText = await res2.text();
-        return ipText.trim();
-      } catch {
-        return null;
-      }
+      return null;
     }
   }
 
@@ -186,13 +178,14 @@
     if (!currentIP) {
       alert('Não foi possível obter seu IP. O jogo pode não funcionar corretamente.');
     }
-
     const snapshot = await db.ref('players').once('value');
     const players = snapshot.val() || {};
-
-    const playedCount = Object.values(players).filter(p => p.ip === currentIP).length;
-    userHasPlayed = playedCount >= 1;
-
+    for (const key in players) {
+      if (players[key].ip === currentIP) {
+        userHasPlayed = true;
+        break;
+      }
+    }
     renderLeaderboard(players);
   }
 
@@ -234,18 +227,19 @@
     });
   });
 
-  submitBtn.addEventListener('click', async () => {
-    if (userHasPlayed) {
-      alert('Você já jogou uma vez. Não pode jogar de novo.');
-      return;
-    }
+  submitBtn.addEventListener('click', async (e) => {
+    e.preventDefault();
+
     let score = 0;
     for (let i = 1; i <= 4; i++) {
       const answer = document.querySelector(`input[name=q${i}]:checked`);
       if (answer && answer.value === '1') score++;
     }
     const name = playerNameInput.value.trim();
-    if (!name) return;
+    if (!name) {
+      alert('Digite seu nome para começar.');
+      return;
+    }
 
     const city = await fetchCity();
 
@@ -281,29 +275,26 @@
       alert('Digite seu nome para limpar o placar.');
       return;
     }
+
     const snapshot = await db.ref('players').once('value');
     const players = snapshot.val() || {};
 
-    const keysToRemove = Object.entries(players)
-      .filter(([key, val]) => val.name === name && val.ip === currentIP)
-      .map(([key]) => key);
+    const keyToRemove = Object.entries(players).find(([key, val]) => val.name === name && val.ip === currentIP);
 
-    if (keysToRemove.length === 0) {
+    if (!keyToRemove) {
       alert('Placar não encontrado para esse nome e IP.');
       return;
     }
 
-    await Promise.all(keysToRemove.map(key => db.ref(`players/${key}`).remove()));
+    await db.ref(`players/${keyToRemove[0]}`).remove();
 
     alert('Seu placar foi removido e seu IP liberado para jogar de novo.');
+
     userHasPlayed = false;
-
     renderLeaderboard(await db.ref('players').once('value').then(s => s.val()));
-
     introDiv.classList.remove('hidden');
     finalMessage.classList.add('hidden');
     quizDiv.classList.add('hidden');
-    backgroundGif.style.display = 'none';
   });
 
   init();
