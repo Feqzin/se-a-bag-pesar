@@ -90,6 +90,7 @@
 
   <div id="finalMessage" class="hidden">
     <h2>Você aguenta a bag.</h2>
+    <p id="scoreDisplay"></p>
     <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank">OUVIR "Se a bag pesar"</a></p>
   </div>
 
@@ -114,15 +115,20 @@
       });
     });
 
-    function checkAnswers() {
-      let score = 0;
-      for (let i = 1; i <= 3; i++) {
-        const answer = document.querySelector(`input[name=q${i}]:checked`);
-        if (answer && answer.value === '1') score++;
-      }
-      document.getElementById('quiz').classList.add('hidden');
-      document.getElementById('finalMessage').classList.remove('hidden');
-    }
+   function checkAnswers() {
+  let score = 0;
+  for (let i = 1; i <= 3; i++) {
+    const answer = document.querySelector(`input[name=q${i}]:checked`);
+    if (answer && answer.value === '1') score++;
+  }
+
+  document.getElementById('quiz').classList.add('hidden');
+  document.getElementById('finalMessage').classList.remove('hidden');
+
+  // Mostrar pontuação
+  const scoreText = `Você acertou ${score} de 3 perguntas.`;
+  document.getElementById('scoreDisplay').innerText = scoreText;
+}
   </script>
 </body>
 </html>
