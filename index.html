@@ -1,76 +1,141 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Se a bag pesar</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Courier New', Courier, monospace;
-      background-color: #000;
-      color: #0f0;
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      flex-direction: column;
-      text-align: center;
-      position: relative;
-      overflow: hidden;
-    }
-    .hidden { display: none; }
-    button {
-      margin-top: 20px;
-      padding: 12px 24px;
-      background-color: #0f0;
-      border: none;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 1rem;
-      z-index: 10;
-      position: relative;
-    }
-    #nameInput {
-      padding: 10px;
-      font-size: 1rem;
-      margin-top: 20px;
-      width: 200px;
-      text-align: center;
-      border: 2px solid #0f0;
-      background-color: #000;
-      color: #0f0;
-      outline: none;
-      position: relative;
-      z-index: 10;
-    }
-    #oncaGif {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      object-fit: cover;
-      pointer-events: none; /* deixa clique passar */
-      z-index: 1;
-      display: none;
-    }
-  </style>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Se a bag pesar - Quiz</title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Courier New', Courier, monospace;
+    background-color: #000;
+    color: #0f0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    flex-direction: column;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+  }
+  .hidden { display: none; }
+  button {
+    margin-top: 20px;
+    padding: 12px 24px;
+    background-color: #0f0;
+    border: none;
+    color: #000;
+    font-weight: bold;
+    cursor: pointer;
+    font-size: 1rem;
+    z-index: 10;
+    position: relative;
+  }
+  #nameInput {
+    padding: 10px;
+    font-size: 1rem;
+    margin-top: 20px;
+    width: 200px;
+    text-align: center;
+    border: 2px solid #0f0;
+    background-color: #000;
+    color: #0f0;
+    outline: none;
+    position: relative;
+    z-index: 10;
+  }
+  #oncaGif {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    pointer-events: none; /* deixa clique passar */
+    z-index: 1;
+    display: none;
+  }
+  .question {
+    margin-top: 30px;
+  }
+  .answers label {
+    display: block;
+    margin: 6px 0;
+    cursor: pointer;
+  }
+  #scoreDisplay {
+    margin-top: 20px;
+  }
+  #leaderboard {
+    margin-top: 20px;
+    max-height: 150px;
+    overflow-y: auto;
+    width: 300px;
+    background: rgba(0, 255, 0, 0.1);
+    border: 1px solid #0f0;
+    padding: 10px;
+    text-align: left;
+    font-size: 0.9rem;
+  }
+  #leaderboard h3 {
+    margin: 0 0 10px 0;
+    text-align: center;
+  }
+</style>
 </head>
 <body>
 
   <div id="intro">
     <h1>"Se a bag pesar..."</h1>
     <p>Você vai aguentar ou vai correr?</p>
-    <input type="text" id="nameInput" placeholder="Digite seu nome" maxlength="20" />
+    <input type="text" id="nameInput" placeholder="Digite seu nome" maxlength="20" autocomplete="off" />
     <br/>
     <button onclick="startQuiz()">Começar o jogo</button>
   </div>
 
   <div id="quiz" class="hidden">
-    <!-- Perguntas aqui (igual ao anterior, abrevia para foco) -->
-    <!-- 4 perguntas, incluindo a do lançamento -->
+    <div class="question" id="q1">
+      <p>1. Qual animal aparece como símbolo de lucro no som?</p>
+      <div class="answers">
+        <label><input type="radio" name="q1" value="0" /> Tigre</label>
+        <label><input type="radio" name="q1" value="1" /> Onça</label>
+        <label><input type="radio" name="q1" value="0" /> Cobra</label>
+        <label><input type="radio" name="q1" value="0" /> Corvo</label>
+      </div>
+    </div>
+
+    <div class="question hidden" id="q2">
+      <p>2. O que o “Magikarp” representa na letra?</p>
+      <div class="answers">
+        <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
+        <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
+        <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
+        <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
+      </div>
+    </div>
+
+    <div class="question hidden" id="q3">
+      <p>3. O que acontece “se a bag pesar”?</p>
+      <div class="answers">
+        <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
+        <label><input type="radio" name="q3" value="0" /> Eu corro</label>
+        <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
+        <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
+      </div>
+    </div>
+
+    <div class="question hidden" id="q4">
+      <p>4. Quando será lançada a música?</p>
+      <div class="answers">
+        <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
+        <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
+        <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
+        <label><input type="radio" name="q4" value="0" /> 15-05-25</label>
+      </div>
+    </div>
+
+    <button class="hidden" id="submitBtn" onclick="checkAnswers()">Ver resultado</button>
   </div>
 
   <div id="finalMessage" class="hidden">
@@ -78,18 +143,24 @@
     <p id="scoreDisplay"></p>
     <img id="oncaGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
     <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank">OUVIR "Se a bag pesar"</a></p>
+
+    <div id="leaderboard">
+      <h3>Placar dos jogadores</h3>
+      <ul id="leaderboardList"></ul>
+      <button onclick="clearLeaderboard()" style="background:red; color:#fff; font-weight:bold;">Limpar Placar (Só você)</button>
+    </div>
   </div>
 
 <script>
-  // Gera UUID simples
+  // UUID simples
   function generateUUID() {
     return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
-      const r = Math.random() * 16 | 0, v = c == 'x' ? r : (r & 0x3 | 0x8);
+      const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
       return v.toString(16);
     });
   }
 
-  // Verifica se uuid salvo, se não cria um
+  // Armazena userId do navegador
   let userId = localStorage.getItem('userId');
   if (!userId) {
     userId = generateUUID();
@@ -102,6 +173,10 @@
     return !!playedUsers[userId];
   }
 
+  // Controle das perguntas
+  const totalQuestions = 4;
+  let currentQuestion = 1;
+
   function startQuiz() {
     const inputName = document.getElementById('nameInput').value.trim();
     if (!inputName) {
@@ -112,23 +187,106 @@
       alert("Você já jogou! Só pode jogar uma vez.");
       return;
     }
-    // Seguir o jogo...
+    localStorage.setItem('currentPlayerName', inputName);
     document.getElementById('intro').classList.add('hidden');
     document.getElementById('quiz').classList.remove('hidden');
+    showQuestion(1);
   }
 
-  // Exemplo para salvar o resultado após quiz
-  function checkAnswers() {
-    // calcular score...
+  // Mostrar a pergunta atual e esconder as outras
+  function showQuestion(num) {
+    for(let i=1; i <= totalQuestions; i++) {
+      const q = document.getElementById('q' + i);
+      if(i === num) q.classList.remove('hidden');
+      else q.classList.add('hidden');
+    }
+    document.getElementById('submitBtn').classList.add('hidden');
+  }
 
-    // Salva que esse userId já jogou
+  // Adicionar listener para ir avançando nas perguntas
+  document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
+    input.addEventListener('change', e => {
+      const name = e.target.name; // ex: q1
+      const num = parseInt(name.replace('q',''));
+      if (num < totalQuestions) {
+        showQuestion(num + 1);
+      } else {
+        document.getElementById('submitBtn').classList.remove('hidden');
+      }
+    });
+  });
+
+  // Checar respostas e mostrar resultado
+  function checkAnswers() {
+    const correctAnswers = {
+      q1: '1',
+      q2: '1',
+      q3: '1',
+      q4: '1'
+    };
+
+    let score = 0;
+    for (let i=1; i <= totalQuestions; i++) {
+      const answer = document.querySelector(`input[name=q${i}]:checked`);
+      if (answer && answer.value === correctAnswers['q' + i]) {
+        score++;
+      }
+    }
+
+    // Salvar que jogador já jogou
     let playedUsers = JSON.parse(localStorage.getItem('playedUsers')) || {};
     playedUsers[userId] = true;
     localStorage.setItem('playedUsers', JSON.stringify(playedUsers));
 
-    // Mostrar resultado, gif, etc
-  }
-</script>
+    document.getElementById('quiz').classList.add('hidden');
+    document.getElementById('finalMessage').classList.remove('hidden');
 
-</body>
-</html>
+    const playerName = localStorage.getItem('currentPlayerName') || 'Jogador';
+
+    // Mostrar placar
+    document.getElementById('scoreDisplay').innerText = `${playerName}, você acertou ${score} de ${totalQuestions} perguntas.`;
+
+    // Mostrar gif se acertar tudo
+    const gif = document.getElementById('oncaGif');
+    if(score === totalQuestions) {
+      gif.style.display = 'block';
+    } else {
+      gif.style.display = 'none';
+    }
+
+    // Salvar no placar
+    saveScore(playerName, score);
+    renderLeaderboard();
+  }
+
+  // Salvar score no placar localStorage
+  function saveScore(name, score) {
+    let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+    leaderboard.push({name: name, score: score});
+    localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+  }
+
+  // Renderizar placar na tela
+  function renderLeaderboard() {
+    let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
+    leaderboard.sort((a,b) => b.score - a.score); // do maior para menor
+
+    const list = document.getElementById('leaderboardList');
+    list.innerHTML = '';
+
+    leaderboard.forEach(entry => {
+      const li = document.createElement('li');
+      li.textContent = `${entry.name} - ${entry.score} pts`;
+      list.appendChild(li);
+    });
+  }
+
+  // Limpar placar (botão só você deve usar)
+  function clearLeaderboard() {
+    if(confirm('Tem certeza que deseja limpar o placar? Essa ação não pode ser desfeita.')) {
+      localStorage.removeItem('leaderboard');
+      renderLeaderboard();
+    }
+  }
+
+ 
