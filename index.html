@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Se a bag pesar - Quiz</title>
+  <title>Se a bag pesar</title>
   <style>
     body {
       margin: 0;
@@ -64,7 +64,7 @@
       max-width: 600px;
     }
     #leaderboard {
-      width: 300px;
+      width: 250px;
       margin-left: 40px;
     }
     #leaderboard h3 {
@@ -73,30 +73,15 @@
     #leaderboard ul {
       list-style: none;
       padding: 0;
-      max-height: 450px;
-      overflow-y: auto;
     }
     #leaderboard li {
       margin-bottom: 10px;
-      display: flex;
-      align-items: center;
-    }
-    #removeSelectedBtn {
-      margin-bottom: 10px;
-      background-color: #f00;
-      color: #fff;
-      border: none;
-      padding: 8px 16px;
-      cursor: pointer;
-      display: none;
-      font-weight: bold;
     }
   </style>
-  <!-- Firebase SDK -->
   <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
-    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js";
+    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js";
 
     const firebaseConfig = {
       apiKey: "AIzaSyAH6bRDAGuKVdv6XDWkrwpX-prapchLYTw",
@@ -113,204 +98,14 @@
     const analytics = getAnalytics(app);
     const db = getDatabase(app);
 
-    // Função para buscar cidade pelo IP
-    async function getCityFromIP() {
-      try {
-        const response = await fetch('https://ipapi.co/json/');
-        const data = await response.json();
-        return data.city || 'Localização desconhecida';
-      } catch {
-        return 'Localização desconhecida';
-      }
+    // Salva resultado no Firebase
+    async function saveScore(name, score, location) {
+      const playerRef = ref(db, 'players/' + name);
+      await set(playerRef, { score, location });
     }
 
-    // Controladores DOM
-    const startBtn = document.getElementById('startBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const submitBtn = document.getElementById('submitBtn');
-    const removeSelectedBtn = document.getElementById('removeSelectedBtn');
-    const leaderboardList = document.getElementById('leaderboardList');
-    const playerNameInput = document.getElementById('playerName');
+    window.firebaseDB = { saveScore, db };
 
-    startBtn.addEventListener('click', startQuiz);
-    clearBtn.addEventListener('click', clearMyScore);
-    submitBtn.addEventListener('click', checkAnswers);
-    removeSelectedBtn.addEventListener('click', removeSelectedScores);
-
-    function startQuiz() {
-      const playerName = playerNameInput.value.trim();
-      if (!playerName) {
-        alert("Digite seu nome para começar.");
-        return;
-      }
-
-      // Checa se IP já jogou
-      getCityFromIP().then(ipCity => {
-        const leaderboardRef = ref(db, 'leaderboard');
-        onValue(leaderboardRef, snapshot => {
-          const data = snapshot.val() || {};
-          for (const key in data) {
-            if (data[key].ip === ipCity && data[key].name === playerName) {
-              alert('Você já jogou com esse IP e nome. Apague seu nome para jogar novamente.');
-              return;
-            }
-          }
-          showQuiz();
-        }, { onlyOnce: true });
-      });
-    }
-
-    function showQuiz() {
-      document.getElementById('intro').classList.add('hidden');
-      document.getElementById('quiz').classList.remove('hidden');
-      submitBtn.classList.add('hidden');
-
-      const radios = document.querySelectorAll('input[type=radio]');
-      radios.forEach(radio => {
-        radio.checked = false; // reset respostas
-        radio.addEventListener('change', e => {
-          const name = e.target.name;
-          const qNum = parseInt(name.replace('q', ''));
-          const currentQ = document.getElementById(`q${qNum}`);
-          const nextQ = document.getElementById(`q${qNum + 1}`);
-          if (nextQ) {
-            currentQ.classList.add('hidden');
-            nextQ.classList.remove('hidden');
-          } else {
-            currentQ.classList.add('hidden');
-            submitBtn.classList.remove('hidden');
-          }
-        });
-      });
-    }
-
-    async function checkAnswers() {
-      let score = 0;
-      for (let i = 1; i <= 4; i++) {
-        const answer = document.querySelector(`input[name=q${i}]:checked`);
-        if (answer && answer.value === '1') score++;
-      }
-      const name = playerNameInput.value.trim();
-      if (!name) return alert('Digite seu nome.');
-
-      const ipCity = await getCityFromIP();
-
-      // Salvar no Firebase
-      const leaderboardRef = ref(db, 'leaderboard');
-      onValue(leaderboardRef, snapshot => {
-        const data = snapshot.val() || {};
-        let foundKey = null;
-        for (const key in data) {
-          if (data[key].name === name) {
-            foundKey = key;
-            break;
-          }
-        }
-        if (foundKey) {
-          // Atualiza registro existente
-          set(ref(db, `leaderboard/${foundKey}`), {
-            name,
-            score,
-            location: ipCity,
-            ip: ipCity,
-          });
-        } else {
-          // Novo registro
-          const newKey = Date.now().toString();
-          set(ref(db, `leaderboard/${newKey}`), {
-            name,
-            score,
-            location: ipCity,
-            ip: ipCity,
-          });
-        }
-      }, { onlyOnce: true });
-
-      document.getElementById('quiz').classList.add('hidden');
-      document.getElementById('finalMessage').classList.remove('hidden');
-      document.getElementById('scoreDisplay').innerText = `Você acertou ${score} de 4 perguntas.`;
-
-      if (score === 4) {
-        document.getElementById('backgroundGif').style.display = 'block';
-      }
-      renderLeaderboard();
-    }
-
-    function renderLeaderboard() {
-      const leaderboardRef = ref(db, 'leaderboard');
-      onValue(leaderboardRef, snapshot => {
-        const data = snapshot.val() || {};
-        leaderboardList.innerHTML = '';
-
-        if (Object.keys(data).length === 0) {
-          removeSelectedBtn.style.display = 'none';
-          return;
-        } else {
-          removeSelectedBtn.style.display = 'inline-block';
-        }
-
-        for (const key in data) {
-          const entry = data[key];
-          const li = document.createElement('li');
-
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.value = key;
-          checkbox.style.marginRight = '10px';
-
-          const text = document.createElement('span');
-          text.textContent = `${entry.name} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`;
-
-          li.appendChild(checkbox);
-          li.appendChild(text);
-          leaderboardList.appendChild(li);
-        }
-      });
-    }
-
-    function clearMyScore() {
-      const password = prompt("Digite a senha para limpar seu placar:");
-      if (password !== "bagsecreta123") {
-        alert("Senha incorreta.");
-        return;
-      }
-
-      const name = playerNameInput.value.trim();
-      if (!name) {
-        alert("Digite seu nome para limpar seu placar.");
-        return;
-      }
-
-      const leaderboardRef = ref(db, 'leaderboard');
-      onValue(leaderboardRef, snapshot => {
-        const data = snapshot.val() || {};
-        for (const key in data) {
-          if (data[key].name === name) {
-            remove(ref(db, 'leaderboard/' + key));
-          }
-        }
-        alert("Seu placar foi removido.");
-        renderLeaderboard();
-      }, { onlyOnce: true });
-    }
-
-    async function removeSelectedScores() {
-      const checkboxes = document.querySelectorAll('#leaderboardList input[type=checkbox]:checked');
-      if (checkboxes.length === 0) {
-        alert('Selecione pelo menos um placar para remover.');
-        return;
-      }
-      const confirmed = confirm(`Tem certeza que deseja remover ${checkboxes.length} placar(es)?`);
-      if (!confirmed) return;
-
-      for (const checkbox of checkboxes) {
-        await remove(ref(db, 'leaderboard/' + checkbox.value));
-      }
-      alert('Placar(es) removido(s) com sucesso.');
-      renderLeaderboard();
-    }
-
-    renderLeaderboard();
   </script>
 </head>
 <body>
@@ -321,64 +116,207 @@
       <div id="intro">
         <h1>"Se a bag pesar..."</h1>
         <p>Você vai aguentar ou vai correr?</p>
-        <input type="text" id="playerName" placeholder="Digite seu nome aqui" autocomplete="off" />
+        <input type="text" id="playerName" placeholder="Digite seu nome" />
         <br />
-        <button id="startBtn">Começar Quiz</button>
+        <button id="startBtn">Começar o jogo</button>
+        <br />
         <button id="clearBtn">Limpar meu placar</button>
       </div>
 
       <div id="quiz" class="hidden">
         <div class="question" id="q1">
-          <p>1. Qual é o animal da cédula de 50 reais?</p>
+          <p>1. Qual animal aparece como símbolo de lucro no som?</p>
           <div class="answers">
-            <label><input type="radio" name="q1" value="1" /> Onça-pintada</label>
-            <label><input type="radio" name="q1" value="0" /> Arara</label>
-            <label><input type="radio" name="q1" value="0" /> Jacaré</label>
+            <label><input type="radio" name="q1" value="0" /> Tigre</label>
+            <label><input type="radio" name="q1" value="1" /> Onça</label>
+            <label><input type="radio" name="q1" value="0" /> Cobra</label>
+            <label><input type="radio" name="q1" value="0" /> Corvo</label>
           </div>
         </div>
 
         <div class="question hidden" id="q2">
-          <p>2. Qual Pokémon é usado para associar à cédula de 100 reais?</p>
+          <p>2. O que o “Magikarp” representa na letra?</p>
           <div class="answers">
-            <label><input type="radio" name="q2" value="1" /> Magikarp</label>
-            <label><input type="radio" name="q2" value="0" /> Pikachu</label>
-            <label><input type="radio" name="q2" value="0" /> Bulbasaur</label>
+            <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
+            <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
+            <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
+            <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
           </div>
         </div>
 
         <div class="question hidden" id="q3">
-          <p>3. Qual é a cor da cédula de 10 reais?</p>
+          <p>3. O que acontece “se a bag pesar”?</p>
           <div class="answers">
-            <label><input type="radio" name="q3" value="1" /> Vermelha</label>
-            <label><input type="radio" name="q3" value="0" /> Azul</label>
-            <label><input type="radio" name="q3" value="0" /> Verde</label>
+            <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
+            <label><input type="radio" name="q3" value="0" /> Eu corro</label>
+            <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
+            <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
           </div>
         </div>
 
         <div class="question hidden" id="q4">
-          <p>4. Qual animal aparece na cédula de 2 reais?</p>
+          <p>4. Quando será lançada a música?</p>
           <div class="answers">
-            <label><input type="radio" name="q4" value="1" /> Tartaruga</label>
-            <label><input type="radio" name="q4" value="0" /> Lobo-marinho</label>
-            <label><input type="radio" name="q4" value="0" /> Coruja</label>
+            <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
+            <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
+            <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
+            <label><input type="radio" name="q4" value="0" /> 01-05-25</label>
           </div>
         </div>
 
-        <button id="submitBtn" class="hidden">Enviar respostas</button>
+        <button class="hidden" id="submitBtn">Ver resultado</button>
       </div>
 
       <div id="finalMessage" class="hidden">
-        <h2>Resultado</h2>
+        <h2>Você aguenta a bag.</h2>
         <p id="scoreDisplay"></p>
-        <p><a href="#" onclick="location.reload()">Jogar novamente</a></p>
+        <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank">OUVIR "Se a bag pesar"</a></p>
       </div>
     </div>
 
     <div id="leaderboard">
       <h3>Placar de líderes</h3>
-      <button id="removeSelectedBtn">Remover selecionados</button>
       <ul id="leaderboardList"></ul>
+      <button id="removeSelectedBtn" style="margin-top: 10px;">Remover selecionados</button>
     </div>
   </div>
+
+  <script>
+    document.getElementById('startBtn').addEventListener('click', startQuiz);
+    document.getElementById('clearBtn').addEventListener('click', clearMyScore);
+    document.getElementById('submitBtn').addEventListener('click', checkAnswers);
+    document.getElementById('removeSelectedBtn').addEventListener('click', removeSelectedPlayers);
+
+    function startQuiz() {
+      const playerName = document.getElementById('playerName').value.trim();
+      if (!playerName) {
+        alert("Digite seu nome para começar.");
+        return;
+      }
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('quiz').classList.remove('hidden');
+
+      const radios = document.querySelectorAll('input[type=radio]');
+      radios.forEach(radio => {
+        radio.addEventListener('change', e => {
+          const name = e.target.name;
+          const qNum = parseInt(name.replace('q', ''));
+          const currentQ = document.getElementById(`q${qNum}`);
+          const nextQ = document.getElementById(`q${qNum + 1}`);
+          if (nextQ) {
+            currentQ.classList.add('hidden');
+            nextQ.classList.remove('hidden');
+          } else {
+            currentQ.classList.add('hidden');
+            document.getElementById('submitBtn').classList.remove('hidden');
+          }
+        });
+      });
+    }
+
+    function clearMyScore() {
+      const password = prompt("Digite a senha para limpar seu placar:");
+      if (password === "bagsecreta123") {
+        const name = document.getElementById('playerName').value.trim();
+        if (!name) {
+          alert("Digite seu nome para limpar seu placar.");
+          return;
+        }
+        // Remove do Firebase
+        const playerRef = window.firebaseDB.db.ref('players/' + name);
+        playerRef.remove()
+          .then(() => {
+            alert("Seu placar foi limpo.");
+          })
+          .catch(() => {
+            alert("Erro ao limpar placar.");
+          });
+      } else {
+        alert("Senha incorreta.");
+      }
+    }
+
+    async function checkAnswers() {
+      let score = 0;
+      for (let i = 1; i <= 4; i++) {
+        const answer = document.querySelector(`input[name=q${i}]:checked`);
+        if (answer && answer.value === '1') score++;
+      }
+
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) return;
+
+      const city = await getCityFromIP();
+
+      await window.firebaseDB.saveScore(name, score, city);
+
+      document.getElementById('quiz').classList.add('hidden');
+      document.getElementById('finalMessage').classList.remove('hidden');
+      document.getElementById('scoreDisplay').innerText = `Você acertou ${score} de 4 perguntas.`;
+
+      if (score === 4) {
+        document.getElementById('backgroundGif').style.display = 'block';
+      }
+    }
+
+    async function getCityFromIP() {
+      try {
+        const res = await fetch('https://ipapi.co/json/');
+        const json = await res.json();
+        return json.city || "Cidade desconhecida";
+      } catch {
+        return "Cidade desconhecida";
+      }
+    }
+
+    // Renderiza leaderboard com checkboxes
+    function renderLeaderboard() {
+      const playersRef = window.firebaseDB.db.ref('players');
+      playersRef.on('value', (snapshot) => {
+        const data = snapshot.val();
+        const list = document.getElementById('leaderboardList');
+        list.innerHTML = '';
+
+        if (!data) return;
+
+        const sortedPlayers = Object.entries(data).sort((a, b) => b[1].score - a[1].score);
+
+        sortedPlayers.forEach(([playerName, entry]) => {
+          const li = document.createElement('li');
+
+          const checkbox = document.createElement('input');
+          checkbox.type = 'checkbox';
+          checkbox.value = playerName;
+          checkbox.style.marginRight = '8px';
+
+          li.appendChild(checkbox);
+          li.appendChild(document.createTextNode(`${playerName} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`));
+          list.appendChild(li);
+        });
+      });
+    }
+
+    // Remove jogadores selecionados do Firebase
+    function removeSelectedPlayers() {
+      const checkboxes = document.querySelectorAll('#leaderboardList input[type="checkbox"]:checked');
+      if (checkboxes.length === 0) {
+        alert('Selecione pelo menos um placar para remover.');
+        return;
+      }
+
+      if (!confirm(`Tem certeza que quer remover ${checkboxes.length} placar(es)?`)) return;
+
+      checkboxes.forEach(cb => {
+        const playerName = cb.value;
+        const playerRef = window.firebaseDB.db.ref('players/' + playerName);
+        playerRef.remove().catch(() => {
+          alert(`Erro ao remover o placar de ${playerName}`);
+        });
+      });
+    }
+
+    // Inicializa o placar logo que a página carrega
+    renderLeaderboard();
+  </script>
 </body>
 </html>
