@@ -144,7 +144,7 @@
   </style>
 </head>
 <body>
-  <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
+  <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHS2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
 
   <div id="container">
     <div id="mainContent">
@@ -271,6 +271,8 @@
 
     let currentPlayerName = null;
     let currentPlayerIP = null;
+    let currentQuestionIndex = 0;
+    const totalQuestions = 4;
 
     // Event Listeners
     startBtn.addEventListener('click', startQuiz);
@@ -312,20 +314,17 @@
     // Função melhorada para remover placar
     async function removeScore(name) {
       try {
-        // Primeiro obtemos os dados do jogador para encontrar o IP
         const playerRef = ref(db, 'players/' + name);
         const snapshot = await get(playerRef);
         
         if (snapshot.exists()) {
           const playerData = snapshot.val();
           
-          // Remove o registro de IP associado
           if (playerData.ip) {
             const ipRef = ref(db, 'ips/' + playerData.ip);
             await remove(ipRef);
           }
           
-          // Finalmente remove o jogador
           await remove(playerRef);
           return true;
         }
@@ -353,7 +352,6 @@
         const players = snapshot.val();
         let hasPlayers = false;
         
-        // Adiciona checkbox para cada jogador
         for (const name in players) {
           hasPlayers = true;
           const player = players[name];
@@ -368,7 +366,6 @@
           playersCheckboxes.appendChild(div);
         }
         
-        // Adiciona opção "Selecionar Todos" se houver jogadores
         if (hasPlayers) {
           const selectAllDiv = document.createElement('div');
           selectAllDiv.className = 'select-all';
@@ -380,7 +377,6 @@
           `;
           playersCheckboxes.insertBefore(selectAllDiv, playersCheckboxes.firstChild);
           
-          // Lógica para selecionar/deselecionar todos
           document.getElementById('selectAll').addEventListener('change', function() {
             const checkboxes = playersCheckboxes.querySelectorAll('input[name="playerToDelete"]');
             checkboxes.forEach(checkbox => {
@@ -404,7 +400,6 @@
       let successCount = 0;
       let failCount = 0;
       
-      // Processa cada exclusão com feedback
       for (const checkbox of checkboxes) {
         const removed = await removeScore(checkbox.value);
         if (removed) {
@@ -414,7 +409,6 @@
         }
       }
       
-      // Feedback ao usuário
       let message = `${successCount} placar(es) removido(s) com sucesso!`;
       if (failCount > 0) {
         message += `\nFalha ao remover ${failCount} placar(es).`;
@@ -422,7 +416,7 @@
       
       modalOverlay.style.display = 'none';
       alert(message);
-      loadLeaderboard(); // Atualiza o placar visível
+      loadLeaderboard();
     });
 
     // Carregar placar de líderes
@@ -449,10 +443,7 @@
       });
     }
 
-    // Inicializar placar
-    loadLeaderboard();
-
-    // Iniciar o quiz
+    // Iniciar o quiz - FUNÇÃO CORRIGIDA
     async function startQuiz() {
       const name = playerNameInput.value.trim();
       if (!name) {
@@ -460,14 +451,12 @@
         return;
       }
 
-      // Obter e verificar IP
       currentPlayerIP = await getUserIP();
       if (!currentPlayerIP) {
         alert('Não foi possível verificar seu IP. Tente novamente mais tarde.');
         return;
       }
 
-      // Verificar se já jogou
       const ipRef = ref(db, 'ips/' + currentPlayerIP);
       const ipSnap = await get(ipRef);
       
@@ -484,9 +473,6 @@
       showQuestion(currentQuestionIndex);
       submitBtn.classList.add('hidden');
     }
-
-    const totalQuestions = 4;
-    let currentQuestionIndex = 0;
 
     // Mostrar pergunta atual
     function showQuestion(index) {
@@ -520,7 +506,6 @@
     async function checkAnswers() {
       let score = 0;
       
-      // Verificar todas as respostas
       for(let i=1; i<=totalQuestions; i++) {
         const selected = document.querySelector(`input[name="q${i}"]:checked`);
         if (!selected) {
@@ -530,11 +515,9 @@
         score += Number(selected.value);
       }
 
-      // Salvar resultado
       const location = window.location.href;
       await saveScore(currentPlayerName, score, location, currentPlayerIP);
 
-      // Mostrar resultado final
       document.getElementById('quiz').classList.add('hidden');
       const finalMessage = document.getElementById('finalMessage');
       finalMessage.classList.remove('hidden');
@@ -543,14 +526,15 @@
       scoreDisplay.textContent = `Sua pontuação: ${score} / ${totalQuestions}`;
       finalMessage.querySelector('h2').textContent = finalMessages[score] || "Obrigado por jogar!";
 
-      // Mostrar GIF se acertou tudo
       if(score === totalQuestions) {
         document.getElementById('backgroundGif').style.display = 'block';
       }
 
-      // Atualizar placar
       loadLeaderboard();
     }
+
+    // Inicializar placar
+    loadLeaderboard();
   </script>
 </body>
 </html>
