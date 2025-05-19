@@ -5,6 +5,7 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Se a bag pesar</title>
   <style>
+    /* Seu CSS original aqui, sem alterações */
     body {
       margin: 0;
       font-family: 'Courier New', Courier, monospace;
@@ -78,6 +79,8 @@
     #leaderboard li {
       margin-bottom: 10px;
     }
+
+    /* Modal estilo simples */
     #modalOverlay {
       position: fixed;
       top: 0;
@@ -134,7 +137,6 @@
       </div>
 
       <div id="quiz" class="hidden">
-        <!-- Perguntas (mesmas do seu código original) -->
         <div class="question" id="q1">
           <p>1. Qual animal aparece como símbolo de lucro no som?</p>
           <div class="answers">
@@ -191,6 +193,7 @@
     </div>
   </div>
 
+  <!-- Modal para limpar placares -->
   <div id="modalOverlay">
     <div id="modalContent">
       <h2>Selecionar placares para excluir</h2>
@@ -214,7 +217,7 @@
       authDomain: "se-a-bag-pesar.firebaseapp.com",
       databaseURL: "https://se-a-bag-pesar-default-rtdb.firebaseio.com",
       projectId: "se-a-bag-pesar",
-      storageBucket: "se-a-bag-pesar.appspot.com",
+      storageBucket: "se-a-bag-pesar.firebasestorage.app",
       messagingSenderId: "925392204050",
       appId: "1:925392204050:web:006c6d987578316d8e03cb",
       measurementId: "G-EBEW6G9LYJ"
@@ -236,6 +239,7 @@
     const clearBtn = document.getElementById('clearBtn');
     const submitBtn = document.getElementById('submitBtn');
     const playerNameInput = document.getElementById('playerName');
+
     const modalOverlay = document.getElementById('modalOverlay');
     const playersCheckboxes = document.getElementById('playersCheckboxes');
     const clearForm = document.getElementById('clearForm');
@@ -269,6 +273,7 @@
     }
 
     async function removeScore(name) {
+      // Para remover o IP, precisamos buscar o IP do jogador
       const playerRef = ref(db, 'players/' + name);
       const snapshot = await get(playerRef);
       if (snapshot.exists()) {
@@ -294,7 +299,7 @@
         for (const name in players) {
           const player = players[name];
           const label = document.createElement('label');
-          label.innerHTML = `<input type="checkbox" name="playerToDelete" value="${name}"> ${name} - ${player.score} pontos`;
+          label.innerHTML = <input type="checkbox" name="playerToDelete" value="${name}"> ${name} - ${player.score} pontos;
           playersCheckboxes.appendChild(label);
         }
       }, { onlyOnce: true });
@@ -316,6 +321,7 @@
       alert('Placar(s) excluído(s) com sucesso! Jogadores excluídos poderão jogar novamente.');
     });
 
+    // Carrega placar na lateral
     function loadLeaderboard() {
       const leaderboardList = document.getElementById('leaderboardList');
       const playersRef = ref(db, 'players/');
@@ -326,10 +332,11 @@
           return;
         }
         const players = snapshot.val();
+        // Ordena por score desc
         const sortedPlayers = Object.entries(players).sort((a,b) => b[1].score - a[1].score);
         for (const [name, data] of sortedPlayers) {
           const li = document.createElement('li');
-          li.textContent = `${name}: ${data.score} pontos`;
+          li.textContent = ${name}: ${data.score} pontos;
           leaderboardList.appendChild(li);
         }
       });
@@ -343,6 +350,8 @@
         alert('Digite seu nome para começar.');
         return;
       }
+
+      // Obtém o IP do usuário
       currentPlayerIP = await getUserIP();
       if (!currentPlayerIP) {
         alert('Não foi possível obter seu IP. Tente novamente mais tarde.');
@@ -351,6 +360,7 @@
 
       currentPlayerName = name;
 
+      // Verifica se o IP já está no banco (se já jogou)
       const ipRef = ref(db, 'ips/' + currentPlayerIP);
       const ipSnap = await get(ipRef);
       if (ipSnap.exists()) {
@@ -361,8 +371,11 @@
       document.getElementById('intro').classList.add('hidden');
       document.getElementById('quiz').classList.remove('hidden');
 
+      // Inicializa perguntas
       currentQuestionIndex = 0;
       showQuestion(currentQuestionIndex);
+
+      // Oculta botão submit no começo
       submitBtn.classList.add('hidden');
     }
 
@@ -378,6 +391,7 @@
           q.classList.add('hidden');
         }
       }
+
       if (index === totalQuestions - 1) {
         submitBtn.classList.remove('hidden');
       } else {
@@ -385,6 +399,7 @@
       }
     }
 
+    // Avança para próxima pergunta ao responder
     document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
       input.addEventListener('change', () => {
         if (currentQuestionIndex < totalQuestions - 1) {
@@ -395,16 +410,18 @@
     });
 
     async function checkAnswers() {
+      // Soma pontos
       let score = 0;
       for(let i=1; i<=totalQuestions; i++) {
-        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        const selected = document.querySelector(input[name="q${i}"]:checked);
         if (!selected) {
-          alert(`Responda a pergunta ${i} antes de continuar.`);
+          alert(Responda a pergunta ${i} antes de continuar.);
           return;
         }
         score += Number(selected.value);
       }
 
+      // Salva resultado e IP
       const location = window.location.href;
       await saveScore(currentPlayerName, score, location, currentPlayerIP);
 
@@ -413,9 +430,12 @@
       finalMessage.classList.remove('hidden');
 
       const scoreDisplay = document.getElementById('scoreDisplay');
-      scoreDisplay.textContent = `Sua pontuação: ${score} / ${totalQuestions}`;
+      scoreDisplay.textContent = Sua pontuação: ${score} / ${totalQuestions};
+
+      // Exibe mensagem final
       finalMessage.querySelector('h2').textContent = finalMessages[score] || "Obrigado por jogar!";
 
+      // Mostra gif ao máximo de pontos
       if(score === totalQuestions) {
         document.getElementById('backgroundGif').style.display = 'block';
       } else {
