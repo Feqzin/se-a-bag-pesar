@@ -62,13 +62,15 @@
     }
     #mainContent {
       max-width: 600px;
+      text-align: center;
     }
     #leaderboard {
-      width: 250px;
+      width: 280px;
       margin-left: 40px;
+      color: #0f0;
     }
     #leaderboard h3 {
-      color: #0f0;
+      margin-top: 0;
     }
     #leaderboard ul {
       list-style: none;
@@ -175,6 +177,8 @@
         alert("Digite seu nome para começar.");
         return;
       }
+      // Salva o nome no localStorage para usar depois ao limpar placar
+      localStorage.setItem('currentPlayerName', playerName);
       document.getElementById('intro').classList.add('hidden');
       document.getElementById('quiz').classList.remove('hidden');
     }
@@ -182,15 +186,16 @@
     function clearMyScore() {
       const password = prompt("Digite a senha para limpar seu placar:");
       if (password === "bagsecreta123") {
-        const name = document.getElementById('playerName').value.trim();
+        const name = localStorage.getItem('currentPlayerName');
         if (!name) {
-          alert("Digite seu nome para limpar seu placar.");
+          alert("Nenhum jogador encontrado para limpar placar.");
           return;
         }
         let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
         leaderboard = leaderboard.filter(entry => entry.name !== name);
         localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
         renderLeaderboard();
+        alert("Seu placar foi removido com sucesso.");
       } else {
         alert("Senha incorreta.");
       }
