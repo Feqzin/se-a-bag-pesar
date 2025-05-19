@@ -1,3 +1,4 @@
+
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -104,8 +105,30 @@
       await set(playerRef, { score, location });
     }
 
-    window.firebaseDB = { saveScore, db };
+    // Renderiza leaderboard atualizada
+    function renderLeaderboard() {
+      const playersRef = ref(db, 'players');
+      onValue(playersRef, (snapshot) => {
+        const data = snapshot.val();
+        const list = document.getElementById('leaderboardList');
+        list.innerHTML = '';
 
+        if (!data) return;
+
+        // Ordena desc pelo score
+        const sortedPlayers = Object.entries(data).sort((a, b) => b[1].score - a[1].score);
+
+        sortedPlayers.forEach(([playerName, entry]) => {
+          const li = document.createElement('li');
+          li.textContent = `${playerName} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`;
+          list.appendChild(li);
+        });
+      });
+    }
+
+    window.firebaseDB = { saveScore, renderLeaderboard };
+
+    renderLeaderboard();
   </script>
 </head>
 <body>
@@ -177,7 +200,6 @@
     <div id="leaderboard">
       <h3>Placar de líderes</h3>
       <ul id="leaderboardList"></ul>
-      <button id="removeSelectedBtn" style="margin-top: 10px;">Remover selecionados</button>
     </div>
   </div>
 
@@ -185,7 +207,6 @@
     document.getElementById('startBtn').addEventListener('click', startQuiz);
     document.getElementById('clearBtn').addEventListener('click', clearMyScore);
     document.getElementById('submitBtn').addEventListener('click', checkAnswers);
-    document.getElementById('removeSelectedBtn').addEventListener('click', removeSelectedPlayers);
 
     function startQuiz() {
       const playerName = document.getElementById('playerName').value.trim();
@@ -268,55 +289,6 @@
         return "Cidade desconhecida";
       }
     }
-
-    // Renderiza leaderboard com checkboxes
-    function renderLeaderboard() {
-      const playersRef = window.firebaseDB.db.ref('players');
-      playersRef.on('value', (snapshot) => {
-        const data = snapshot.val();
-        const list = document.getElementById('leaderboardList');
-        list.innerHTML = '';
-
-        if (!data) return;
-
-        const sortedPlayers = Object.entries(data).sort((a, b) => b[1].score - a[1].score);
-
-        sortedPlayers.forEach(([playerName, entry]) => {
-          const li = document.createElement('li');
-
-          const checkbox = document.createElement('input');
-          checkbox.type = 'checkbox';
-          checkbox.value = playerName;
-          checkbox.style.marginRight = '8px';
-
-          li.appendChild(checkbox);
-          li.appendChild(document.createTextNode(`${playerName} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`));
-          list.appendChild(li);
-        });
-      });
-    }
-
-    // Remove jogadores selecionados do Firebase
-    function removeSelectedPlayers() {
-      const checkboxes = document.querySelectorAll('#leaderboardList input[type="checkbox"]:checked');
-      if (checkboxes.length === 0) {
-        alert('Selecione pelo menos um placar para remover.');
-        return;
-      }
-
-      if (!confirm(`Tem certeza que quer remover ${checkboxes.length} placar(es)?`)) return;
-
-      checkboxes.forEach(cb => {
-        const playerName = cb.value;
-        const playerRef = window.firebaseDB.db.ref('players/' + playerName);
-        playerRef.remove().catch(() => {
-          alert(`Erro ao remover o placar de ${playerName}`);
-        });
-      });
-    }
-
-    // Inicializa o placar logo que a página carrega
-    renderLeaderboard();
   </script>
 </body>
 </html>
