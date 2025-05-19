@@ -11,46 +11,12 @@
       background-color: #000;
       color: #0f0;
       display: flex;
-      justify-content: center;
-      align-items: center;
-      height: 100vh;
-      text-align: center;
-      overflow: hidden;
-      position: relative;
-    }
-
-    #mainContent {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      max-width: 600px;
-      width: 100%;
-      z-index: 1;
-    }
-
-    #leaderboard {
-      position: fixed;
-      top: 50%;
-      right: 0;
-      transform: translateY(-50%);
-      background: rgba(0, 0, 0, 0.7);
-      border-left: 2px solid #0f0;
+      justify-content: space-between;
+      align-items: flex-start;
+      min-height: 100vh;
       padding: 20px;
-      width: 300px;
-      max-height: 80vh;
-      overflow-y: auto;
-      text-align: left;
-      color: #0f0;
-      font-size: 0.9rem;
-      z-index: 2;
     }
-
-    #leaderboard h3 {
-      margin-top: 0;
-      text-align: center;
-      font-weight: bold;
-    }
-
+    .hidden { display: none; }
     button {
       margin-top: 20px;
       padding: 12px 24px;
@@ -61,30 +27,23 @@
       cursor: pointer;
       font-size: 1rem;
     }
-
-    .hidden { display: none; }
-
     .question {
       margin-top: 30px;
     }
-
     .question p {
       margin-bottom: 10px;
     }
-
     .answers label {
       display: block;
       margin: 6px 0;
       cursor: pointer;
     }
-
     #finalMessage a {
       color: #0f0;
       font-weight: bold;
       font-size: 1.2rem;
       text-decoration: underline;
     }
-
     #backgroundGif {
       display: none;
       position: fixed;
@@ -93,22 +52,37 @@
       width: 100%;
       height: 100%;
       object-fit: cover;
-      z-index: 0;
+      z-index: -1;
       opacity: 0.3;
-      pointer-events: none;
     }
-
+    #mainContent {
+      flex: 1;
+      max-width: 600px;
+    }
+    #leaderboard {
+      width: 250px;
+      margin-left: 20px;
+    }
+    #leaderboard h3 {
+      color: #0f0;
+    }
+    #leaderboard ul {
+      list-style: none;
+      padding: 0;
+    }
+    #leaderboard li {
+      margin-bottom: 10px;
+    }
   </style>
 </head>
 <body>
-
   <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
 
   <div id="mainContent">
     <div id="intro">
       <h1>"Se a bag pesar..."</h1>
       <p>Você vai aguentar ou vai correr?</p>
-      <input type="text" id="playerName" placeholder="Digite seu nome" autocomplete="off"/>
+      <input type="text" id="playerName" placeholder="Digite seu nome" />
       <br />
       <button onclick="startQuiz()">Começar o jogo</button>
       <br />
@@ -168,7 +142,7 @@
 
   <div id="leaderboard">
     <h3>Placar de líderes</h3>
-    <div id="leaderboardList">Carregando...</div>
+    <ul id="leaderboardList"></ul>
   </div>
 
   <script>
@@ -194,7 +168,6 @@
       localStorage.setItem('played', 'true');
       document.getElementById('intro').classList.add('hidden');
       document.getElementById('quiz').classList.remove('hidden');
-      renderLeaderboard(); // Atualiza placar ao iniciar
     }
 
     function checkAnswers() {
@@ -210,85 +183,53 @@
       const scoreText = `Você acertou ${score} de 4 perguntas.`;
       document.getElementById('scoreDisplay').innerText = scoreText;
 
-      const resultTitle = document.querySelector('#finalMessage h2');
       if (score === 4) {
-        resultTitle.innerText = "Você aguenta a bag.";
         document.getElementById('backgroundGif').style.display = 'block';
-      } else if (score === 0) {
-        resultTitle.innerText = "A bag te pegou.";
-      } else {
-        resultTitle.innerText = "Quase... a bag te pegou.";
       }
 
-      // Salva placar no localStorage com localização (fictícia)
-      saveScoreWithLocation(localStorage.getItem('playerName'), score);
-      renderLeaderboard();
+      const name = localStorage.getItem('playerName') || 'Desconhecido';
+      fetch('https://ipapi.co/json/')
+        .then(response => response.json())
+        .then(data => {
+          const location = `${data.city}, ${data.region}`;
+          const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+          leaderboard.push({ name, score, location });
+          localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+          renderLeaderboard();
+        });
     }
 
-    // Limpa apenas o placar do jogador atual
+    function renderLeaderboard() {
+      const leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+      const list = document.getElementById('leaderboardList');
+      list.innerHTML = '';
+      leaderboard.forEach(entry => {
+        const li = document.createElement('li');
+        li.textContent = `${entry.name} - ${entry.score}/4 (${entry.location})`;
+        list.appendChild(li);
+      });
+    }
+
     function clearMyScore() {
+      const input = prompt("Digite a senha para limpar seu placar:");
+      if (input !== "bagsecreta123") {
+        alert("Senha incorreta.");
+        return;
+      }
+
       localStorage.removeItem('played');
       localStorage.removeItem('playerName');
+
+      const name = localStorage.getItem('playerName');
+      let leaderboard = JSON.parse(localStorage.getItem('leaderboard') || '[]');
+      leaderboard = leaderboard.filter(entry => entry.name !== name);
+      localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
+
       alert("Seu placar foi apagado.");
       location.reload();
     }
 
-    // Função para salvar placar e localização (fictícia)
-    // Como não temos backend, usaremos localStorage para guardar um array de placares
-    function saveScoreWithLocation(name, score) {
-      let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
-
-      // Pega localização pelo IP (simulada, pois sem API real)
-      let location = 'Desconhecida';
-      if (navigator.geolocation) {
-        // Vai tentar pegar localização real, mas pode demorar ou ser negada
-        navigator.geolocation.getCurrentPosition(pos => {
-          location = `${pos.coords.latitude.toFixed(2)}, ${pos.coords.longitude.toFixed(2)}`;
-          updateLeaderboard(name, score, location);
-        }, () => {
-          updateLeaderboard(name, score, location);
-        });
-      } else {
-        updateLeaderboard(name, score, location);
-      }
-    }
-
-    function updateLeaderboard(name, score, location) {
-      let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
-
-      // Atualiza se já tiver esse nome, senão adiciona novo
-      const index = leaderboard.findIndex(entry => entry.name === name);
-      if (index !== -1) {
-        leaderboard[index].score = score;
-        leaderboard[index].location = location;
-      } else {
-        leaderboard.push({ name, score, location });
-      }
-
-      localStorage.setItem('leaderboard', JSON.stringify(leaderboard));
-      renderLeaderboard();
-    }
-
-    // Exibe placar na div à direita
-    function renderLeaderboard() {
-      let leaderboard = JSON.parse(localStorage.getItem('leaderboard')) || [];
-      if (leaderboard.length === 0) {
-        document.getElementById('leaderboardList').innerText = 'Ninguém jogou ainda.';
-        return;
-      }
-      // Ordena por score decrescente
-      leaderboard.sort((a,b) => b.score - a.score);
-
-      const listHtml = leaderboard.map(entry =>
-        `<div><strong>${entry.name}</strong> — ${entry.score} pts — <em>${entry.location}</em></div>`
-      ).join('');
-      document.getElementById('leaderboardList').innerHTML = listHtml;
-    }
-
-    // Atualiza placar ao abrir a página
-    renderLeaderboard();
-
+    window.onload = renderLeaderboard;
   </script>
-
 </body>
 </html>
