@@ -1,59 +1,479 @@
-// Adicionei esta função para verificar a senha antes de abrir o modal
-clearBtn.addEventListener('click', async () => {
-  const senha = prompt("Digite a senha para limpar placares:");
-  if (senha === "bagsecreta123") {
-    openClearModal();
-  } else {
-    alert("Senha incorreta!");
-  }
-});
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Se a bag pesar</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Courier New', Courier, monospace;
+      background-color: #000;
+      color: #0f0;
+      display: flex;
+      justify-content: center;
+      align-items: flex-start;
+      min-height: 100vh;
+      padding: 20px;
+    }
+    .hidden { display: none; }
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background-color: #0f0;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .question {
+      margin-top: 30px;
+    }
+    .question p {
+      margin-bottom: 10px;
+    }
+    .answers label {
+      display: block;
+      margin: 6px 0;
+      cursor: pointer;
+    }
+    #finalMessage a {
+      color: #0f0;
+      font-weight: bold;
+      font-size: 1.2rem;
+      text-decoration: underline;
+    }
+    #backgroundGif {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -1;
+      opacity: 0.3;
+    }
+    #container {
+      display: flex;
+      justify-content: center;
+      width: 100%;
+    }
+    #mainContent {
+      max-width: 600px;
+    }
+    #leaderboard {
+      width: 250px;
+      margin-left: 40px;
+      display: block;
+    }
+    #leaderboard h3 {
+      color: #0f0;
+    }
+    #leaderboard ul {
+      list-style: none;
+      padding: 0;
+    }
+    #leaderboard li {
+      margin-bottom: 10px;
+    }
+    #modalOverlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background-color: rgba(0,0,0,0.75);
+      display: none;
+      justify-content: center;
+      align-items: center;
+      z-index: 9999;
+    }
+    #modalContent {
+      background-color: #111;
+      padding: 20px;
+      border: 2px solid #0f0;
+      max-height: 80vh;
+      overflow-y: auto;
+      width: 350px;
+      border-radius: 8px;
+    }
+    #modalContent h2 {
+      margin-top: 0;
+      color: #0f0;
+      font-size: 1.5rem;
+    }
+    #modalContent label {
+      display: block;
+      margin: 8px 0;
+      cursor: pointer;
+    }
+    #modalButtons {
+      margin-top: 20px;
+      text-align: right;
+    }
+    #modalButtons button {
+      margin-left: 10px;
+    }
+    #ipWarning {
+      color: red;
+      margin-top: 10px;
+      display: none;
+    }
+  </style>
+</head>
+<body>
+  <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
 
-// Modifiquei a função startQuiz para bloquear por IP
-async function startQuiz() {
-  const name = playerNameInput.value.trim();
-  if (!name) {
-    alert('Digite seu nome para começar.');
-    return;
-  }
+  <div id="container">
+    <div id="mainContent">
+      <div id="intro">
+        <h1>"Se a bag pesar..."</h1>
+        <p>Você vai aguentar ou vai correr?</p>
+        <input type="text" id="playerName" placeholder="Digite seu nome" />
+        <div id="ipWarning">Você já jogou! Só pode jogar uma vez.</div>
+        <br />
+        <button id="startBtn">Começar o jogo</button>
+        <br />
+        <button id="clearBtn">Limpar placar (admin)</button>
+      </div>
 
-  currentPlayerIP = await getUserIP();
-  if (!currentPlayerIP) {
-    alert('Não foi possível verificar seu IP. Tente novamente.');
-    return;
-  }
+      <div id="quiz" class="hidden">
+        <div class="question" id="q1">
+          <p>1. Qual animal aparece como símbolo de lucro no som?</p>
+          <div class="answers">
+            <label><input type="radio" name="q1" value="0" /> Tigre</label>
+            <label><input type="radio" name="q1" value="1" /> Onça</label>
+            <label><input type="radio" name="q1" value="0" /> Cobra</label>
+            <label><input type="radio" name="q1" value="0" /> Corvo</label>
+          </div>
+        </div>
 
-  // Verifica se IP já jogou
-  const ipRef = ref(db, 'ips/' + currentPlayerIP);
-  const ipSnap = await get(ipRef);
-  if (ipSnap.exists()) {
-    alert('Você só pode jogar uma vez!');
-    return;
-  }
+        <div class="question hidden" id="q2">
+          <p>2. O que o "Magikarp" representa na letra?</p>
+          <div class="answers">
+            <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
+            <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
+            <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
+            <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
+          </div>
+        </div>
 
-  // Restante da função continua igual...
-  currentPlayerName = name;
-  document.getElementById('intro').classList.add('hidden');
-  document.getElementById('quiz').classList.remove('hidden');
-  currentQuestionIndex = 0;
-  showQuestion(currentQuestionIndex);
-  submitBtn.classList.add('hidden');
-}
+        <div class="question hidden" id="q3">
+          <p>3. O que acontece "se a bag pesar"?</p>
+          <div class="answers">
+            <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
+            <label><input type="radio" name="q3" value="0" /> Eu corro</label>
+            <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
+            <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
+          </div>
+        </div>
 
-// Adicionei feedback ao excluir placares
-clearForm.addEventListener('submit', async (e) => {
-  e.preventDefault();
-  const checked = [...clearForm.elements['playerToDelete']].filter(i => i.checked);
-  
-  if (checked.length === 0) {
-    alert('Selecione ao menos um placar para excluir.');
-    return;
-  }
+        <div class="question hidden" id="q4">
+          <p>4. Quando será lançada a música?</p>
+          <div class="answers">
+            <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
+            <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
+            <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
+            <label><input type="radio" name="q4" value="0" /> 01-05-25</label>
+          </div>
+        </div>
 
-  for (const checkbox of checked) {
-    await removeScore(checkbox.value);
-  }
-  
-  modalOverlay.style.display = 'none';
-  loadLeaderboard();
-  alert(`${checked.length} placar(es) excluído(s)! Os jogadores poderão jogar novamente.`);
-});
+        <button class="hidden" id="submitBtn">Ver resultado</button>
+      </div>
+
+      <div id="finalMessage" class="hidden">
+        <h2>Você aguenta a bag.</h2>
+        <p id="scoreDisplay"></p>
+        <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank">OUVIR "Se a bag pesar"</a></p>
+      </div>
+    </div>
+
+    <div id="leaderboard">
+      <h3>Placar de líderes</h3>
+      <ul id="leaderboardList"></ul>
+    </div>
+  </div>
+
+  <!-- Modal para limpar placares -->
+  <div id="modalOverlay">
+    <div id="modalContent">
+      <h2>Selecionar placares para excluir</h2>
+      <form id="clearForm">
+        <div id="playersCheckboxes" style="max-height: 300px; overflow-y: auto;"></div>
+        <div id="modalButtons">
+          <button type="button" id="cancelClear">Cancelar</button>
+          <button type="submit" id="confirmClear">Excluir selecionados</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
+    import { getDatabase, ref, set, onValue, remove, get } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAH6bRDAGuKVdv6XDWkrwpX-prapchLYTw",
+      authDomain: "se-a-bag-pesar.firebaseapp.com",
+      databaseURL: "https://se-a-bag-pesar-default-rtdb.firebaseio.com",
+      projectId: "se-a-bag-pesar",
+      storageBucket: "se-a-bag-pesar.firebasestorage.app",
+      messagingSenderId: "925392204050",
+      appId: "1:925392204050:web:006c6d987578316d8e03cb",
+      measurementId: "G-EBEW6G9LYJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getDatabase(app);
+
+    const finalMessages = {
+      4: "Você é o mestre da bag! 👑",
+      3: "Quase lá, vai com tudo!",
+      2: "Boa! Continue treinando.",
+      1: "Vamos melhorar, não desista.",
+      0: "Bora tentar de novo!"
+    };
+
+    const startBtn = document.getElementById('startBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const playerNameInput = document.getElementById('playerName');
+    const ipWarning = document.getElementById('ipWarning');
+
+    const modalOverlay = document.getElementById('modalOverlay');
+    const playersCheckboxes = document.getElementById('playersCheckboxes');
+    const clearForm = document.getElementById('clearForm');
+    const cancelClear = document.getElementById('cancelClear');
+
+    let currentPlayerName = null;
+    let currentPlayerIP = null;
+
+    // Event Listeners
+    startBtn.addEventListener('click', startQuiz);
+    clearBtn.addEventListener('click', requestClearPassword);
+    submitBtn.addEventListener('click', checkAnswers);
+    cancelClear.addEventListener('click', () => {
+      modalOverlay.style.display = 'none';
+    });
+
+    // Função para solicitar senha antes de limpar placar
+    async function requestClearPassword() {
+      const senha = prompt("Digite a senha de administrador:");
+      if (senha === "bagsecreta123") {
+        openClearModal();
+      } else {
+        alert("Senha incorreta! Acesso negado.");
+      }
+    }
+
+    // Obter IP do jogador
+    async function getUserIP() {
+      try {
+        const res = await fetch('https://api.ipify.org?format=json');
+        const data = await res.json();
+        return data.ip;
+      } catch {
+        return null;
+      }
+    }
+
+    // Salvar pontuação no Firebase
+    async function saveScore(name, score, location, ip) {
+      const playerRef = ref(db, 'players/' + name);
+      const ipRef = ref(db, 'ips/' + ip);
+      await set(playerRef, { score, location, ip });
+      await set(ipRef, { player: name, timestamp: Date.now() });
+    }
+
+    // Remover pontuação do Firebase
+    async function removeScore(name) {
+      const playerRef = ref(db, 'players/' + name);
+      const snapshot = await get(playerRef);
+      
+      if (snapshot.exists()) {
+        const data = snapshot.val();
+        if (data.ip) {
+          const ipRef = ref(db, 'ips/' + data.ip);
+          await remove(ipRef);
+        }
+        await remove(playerRef);
+      }
+    }
+
+    // Abrir modal de limpeza de placar
+    function openClearModal() {
+      playersCheckboxes.innerHTML = '';
+      const playersRef = ref(db, 'players/');
+      
+      onValue(playersRef, (snapshot) => {
+        playersCheckboxes.innerHTML = '';
+        
+        if (!snapshot.exists()) {
+          playersCheckboxes.innerHTML = '<p>Nenhum placar para excluir.</p>';
+          return;
+        }
+        
+        const players = snapshot.val();
+        for (const name in players) {
+          const player = players[name];
+          const label = document.createElement('label');
+          label.innerHTML = `<input type="checkbox" name="playerToDelete" value="${name}"> ${name} - ${player.score} pontos`;
+          playersCheckboxes.appendChild(label);
+        }
+      }, { onlyOnce: true });
+      
+      modalOverlay.style.display = 'flex';
+    }
+
+    // Submissão do formulário de limpeza
+    clearForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const checked = [...clearForm.elements['playerToDelete']].filter(i => i.checked);
+      
+      if (checked.length === 0) {
+        alert('Selecione ao menos um placar para excluir.');
+        return;
+      }
+      
+      for (const checkbox of checked) {
+        await removeScore(checkbox.value);
+      }
+      
+      modalOverlay.style.display = 'none';
+      loadLeaderboard();
+      alert(`${checked.length} placar(es) excluído(s) com sucesso!`);
+    });
+
+    // Carregar placar de líderes
+    function loadLeaderboard() {
+      const leaderboardList = document.getElementById('leaderboardList');
+      const playersRef = ref(db, 'players/');
+      
+      onValue(playersRef, (snapshot) => {
+        leaderboardList.innerHTML = '';
+        
+        if (!snapshot.exists()) {
+          leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
+          return;
+        }
+        
+        const players = snapshot.val();
+        const sortedPlayers = Object.entries(players).sort((a,b) => b[1].score - a[1].score);
+        
+        for (const [name, data] of sortedPlayers) {
+          const li = document.createElement('li');
+          li.textContent = `${name}: ${data.score} pontos`;
+          leaderboardList.appendChild(li);
+        }
+      });
+    }
+
+    // Inicializar placar
+    loadLeaderboard();
+
+    // Iniciar o quiz
+    async function startQuiz() {
+      const name = playerNameInput.value.trim();
+      if (!name) {
+        alert('Digite seu nome para começar.');
+        return;
+      }
+
+      // Obter e verificar IP
+      currentPlayerIP = await getUserIP();
+      if (!currentPlayerIP) {
+        alert('Não foi possível verificar seu IP. Tente novamente mais tarde.');
+        return;
+      }
+
+      // Verificar se já jogou
+      const ipRef = ref(db, 'ips/' + currentPlayerIP);
+      const ipSnap = await get(ipRef);
+      
+      if (ipSnap.exists()) {
+        ipWarning.style.display = 'block';
+        startBtn.disabled = true;
+        return;
+      }
+
+      currentPlayerName = name;
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('quiz').classList.remove('hidden');
+      currentQuestionIndex = 0;
+      showQuestion(currentQuestionIndex);
+      submitBtn.classList.add('hidden');
+    }
+
+    const totalQuestions = 4;
+    let currentQuestionIndex = 0;
+
+    // Mostrar pergunta atual
+    function showQuestion(index) {
+      for(let i = 1; i <= totalQuestions; i++) {
+        const q = document.getElementById('q' + i);
+        if(i === index + 1) {
+          q.classList.remove('hidden');
+        } else {
+          q.classList.add('hidden');
+        }
+      }
+
+      if (index === totalQuestions - 1) {
+        submitBtn.classList.remove('hidden');
+      } else {
+        submitBtn.classList.add('hidden');
+      }
+    }
+
+    // Avançar para próxima pergunta ao responder
+    document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
+      input.addEventListener('change', () => {
+        if (currentQuestionIndex < totalQuestions - 1) {
+          currentQuestionIndex++;
+          showQuestion(currentQuestionIndex);
+        }
+      });
+    });
+
+    // Verificar respostas e calcular pontuação
+    async function checkAnswers() {
+      let score = 0;
+      
+      // Verificar todas as respostas
+      for(let i=1; i<=totalQuestions; i++) {
+        const selected = document.querySelector(`input[name="q${i}"]:checked`);
+        if (!selected) {
+          alert(`Responda a pergunta ${i} antes de continuar.`);
+          return;
+        }
+        score += Number(selected.value);
+      }
+
+      // Salvar resultado
+      const location = window.location.href;
+      await saveScore(currentPlayerName, score, location, currentPlayerIP);
+
+      // Mostrar resultado final
+      document.getElementById('quiz').classList.add('hidden');
+      const finalMessage = document.getElementById('finalMessage');
+      finalMessage.classList.remove('hidden');
+
+      const scoreDisplay = document.getElementById('scoreDisplay');
+      scoreDisplay.textContent = `Sua pontuação: ${score} / ${totalQuestions}`;
+      finalMessage.querySelector('h2').textContent = finalMessages[score] || "Obrigado por jogar!";
+
+      // Mostrar GIF se acertou tudo
+      if(score === totalQuestions) {
+        document.getElementById('backgroundGif').style.display = 'block';
+      }
+
+      // Atualizar placar
+      loadLeaderboard();
+    }
+  </script>
+</body>
+</html>
