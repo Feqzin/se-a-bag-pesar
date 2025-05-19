@@ -65,7 +65,6 @@
     </div>
 
     <div id="quiz" class="hidden">
-      <!-- Perguntas aqui, mesma estrutura do seu código atual -->
       <div class="question" id="q1">
         <p>1. Qual animal aparece como símbolo de lucro no som?</p>
         <div class="answers">
@@ -127,7 +126,6 @@
 <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-database-compat.js"></script>
 
 <script>
-  // Config do seu projeto Firebase (pegue no console Firebase)
   const firebaseConfig = {
     apiKey: "SUA_API_KEY_AQUI",
     authDomain: "SEU_PROJETO.firebaseapp.com",
@@ -138,11 +136,9 @@
     appId: "SEU_APP_ID"
   };
 
-  // Inicializa Firebase
   firebase.initializeApp(firebaseConfig);
   const db = firebase.database();
 
-  // Elementos
   const playerNameInput = document.getElementById('playerName');
   const startBtn = document.getElementById('startBtn');
   const clearBtn = document.getElementById('clearBtn');
@@ -157,18 +153,24 @@
   let currentIP = null;
   let userHasPlayed = false;
 
-  // Função para pegar IP público via API (usa ipapi.co)
   async function fetchIP() {
     try {
-      const res = await fetch('https://api.ipify.org?format=json');
-      const data = await res.json();
+      let res = await fetch('https://api.ipify.org?format=json');
+      if (!res.ok) throw new Error('ipify falhou');
+      let data = await res.json();
       return data.ip;
     } catch {
-      return null;
+      try {
+        let res2 = await fetch('https://ipapi.co/ip');
+        if (!res2.ok) throw new Error('ipapi falhou');
+        let ipText = await res2.text();
+        return ipText.trim();
+      } catch {
+        return null;
+      }
     }
   }
 
-  // Função para pegar cidade pelo IP (ipapi.co)
   async function fetchCity() {
     try {
       const res = await fetch('https://ipapi.co/json/');
@@ -179,29 +181,23 @@
     }
   }
 
-  // Carregar IP ao iniciar
   async function init() {
     currentIP = await fetchIP();
     if (!currentIP) {
       alert('Não foi possível obter seu IP. O jogo pode não funcionar corretamente.');
     }
-    // Carregar placar e verificar se IP já jogou
-    db.ref('players').once('value').then(snapshot => {
-      const players = snapshot.val() || {};
-      for (const key in players) {
-        if (players[key].ip === currentIP) {
-          userHasPlayed = true;
-          break;
-        }
-      }
-      renderLeaderboard(players);
-    });
+
+    const snapshot = await db.ref('players').once('value');
+    const players = snapshot.val() || {};
+
+    const playedCount = Object.values(players).filter(p => p.ip === currentIP).length;
+    userHasPlayed = playedCount >= 1;
+
+    renderLeaderboard(players);
   }
 
-  // Renderizar placar
   function renderLeaderboard(playersObj) {
     leaderboardList.innerHTML = '';
-    // Convert object para array e ordenar por score decrescente
     const players = Object.values(playersObj || {}).sort((a, b) => b.score - a.score);
     players.forEach(p => {
       const li = document.createElement('li');
@@ -210,7 +206,6 @@
     });
   }
 
-  // Começar quiz
   startBtn.addEventListener('click', () => {
     const name = playerNameInput.value.trim();
     if (!name) {
@@ -225,7 +220,6 @@
     quizDiv.classList.remove('hidden');
   });
 
-  // Quando muda resposta, mostra próxima pergunta
   document.querySelectorAll('input[type=radio]').forEach(radio => {
     radio.addEventListener('change', e => {
       const name = e.target.name;
@@ -240,8 +234,11 @@
     });
   });
 
-  // Checar respostas
   submitBtn.addEventListener('click', async () => {
+    if (userHasPlayed) {
+      alert('Você já jogou uma vez. Não pode jogar de novo.');
+      return;
+    }
     let score = 0;
     for (let i = 1; i <= 4; i++) {
       const answer = document.querySelector(`input[name=q${i}]:checked`);
@@ -252,7 +249,6 @@
 
     const city = await fetchCity();
 
-    // Salvar no Firebase
     const newPlayerRef = db.ref('players').push();
     await newPlayerRef.set({
       name,
@@ -262,7 +258,6 @@
       timestamp: Date.now()
     });
 
-    // Atualizar placar e status
     userHasPlayed = true;
     renderLeaderboard(await db.ref('players').once('value').then(s => s.val()));
 
@@ -275,7 +270,6 @@
     }
   });
 
-  // Limpar placar próprio com senha, remove do Firebase e libera IP
   clearBtn.addEventListener('click', async () => {
     const password = prompt('Digite a senha para limpar seu placar:');
     if (password !== 'bagsecreta123') {
@@ -287,31 +281,31 @@
       alert('Digite seu nome para limpar o placar.');
       return;
     }
-
     const snapshot = await db.ref('players').once('value');
     const players = snapshot.val() || {};
 
-    // Procura o jogador por nome e IP (para remover exato)
-    const keyToRemove = Object.entries(players).find(([key, val]) => val.name === name && val.ip === currentIP);
+    const keysToRemove = Object.entries(players)
+      .filter(([key, val]) => val.name === name && val.ip === currentIP)
+      .map(([key]) => key);
 
-    if (!keyToRemove) {
+    if (keysToRemove.length === 0) {
       alert('Placar não encontrado para esse nome e IP.');
       return;
     }
 
-    await db.ref(`players/${keyToRemove[0]}`).remove();
+    await Promise.all(keysToRemove.map(key => db.ref(`players/${key}`).remove()));
 
     alert('Seu placar foi removido e seu IP liberado para jogar de novo.');
-
-    // Atualizar status local e placar
     userHasPlayed = false;
+
     renderLeaderboard(await db.ref('players').once('value').then(s => s.val()));
+
     introDiv.classList.remove('hidden');
     finalMessage.classList.add('hidden');
     quizDiv.classList.add('hidden');
+    backgroundGif.style.display = 'none';
   });
 
-  // Inicia app
   init();
 </script>
 
