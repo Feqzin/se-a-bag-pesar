@@ -139,6 +139,16 @@
         <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
       </div>
     </div>
+    
+    <div class="question hidden" id="q4">
+      <p>4. Quando será lançada a música "Se a bag pesar"?</p>
+      <div class="answers">
+        <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
+        <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
+        <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
+        <label><input type="radio" name="q4" value="0" /> 01-05-25</label>
+      </div>
+    </div>
 
     <button class="hidden" id="submitBtn" onclick="checkAnswers()">Ver resultado</button>
   </div>
@@ -172,7 +182,7 @@
     radio.addEventListener('change', (e) => {
       const name = e.target.name;
       const qNum = parseInt(name.replace('q', ''));
-      if (qNum < 3) {
+      if (qNum < 4) {
         document.getElementById(`q${qNum}`).classList.add('hidden');
         document.getElementById(`q${qNum + 1}`).classList.remove('hidden');
       } else {
@@ -183,7 +193,7 @@
 
   function checkAnswers() {
     let score = 0;
-    for (let i = 1; i <= 3; i++) {
+    for (let i = 1; i <= 4; i++) {
       const answer = document.querySelector(`input[name=q${i}]:checked`);
       if (answer && answer.value === '1') score++;
     }
@@ -192,73 +202,12 @@
     document.getElementById('finalMessage').classList.remove('hidden');
 
     // Mostrar pontuação
-    const scoreText = `${playerName}, você acertou ${score} de 3 perguntas.`;
+    const scoreText = `${playerName}, você acertou ${score} de 4 perguntas.`;
     document.getElementById('scoreDisplay').innerText = scoreText;
 
     // Mostrar gif de fundo se acertar tudo
     const oncaGif = document.getElementById('oncaGif');
-    if (score === 3) {
+    if (score === 4) {
       oncaGif.style.display = 'block';
     } else {
-      oncaGif.style.display = 'none';
-    }
-
-    // Salvar no placar localStorage
-    saveScore(playerName, score);
-
-    // Mostrar placar
-    showRanking();
-
-    // Mostrar botão limpar placar
-    document.getElementById('clearScoreBtn').style.display = 'inline-block';
-  }
-
-  function saveScore(name, score) {
-    let rankings = JSON.parse(localStorage.getItem('rankings')) || [];
-    rankings.push({ name, score, date: new Date().toLocaleString() });
-    // Ordenar por score decrescente
-    rankings.sort((a, b) => b.score - a.score);
-    // Manter só os 10 melhores
-    if (rankings.length > 10) rankings = rankings.slice(0, 10);
-    localStorage.setItem('rankings', JSON.stringify(rankings));
-  }
-
-  function showRanking() {
-    const rankings = JSON.parse(localStorage.getItem('rankings')) || [];
-    const placa = document.getElementById('placar');
-    if (rankings.length === 0) {
-      placa.innerHTML = "<p>Nenhum placar ainda.</p>";
-      return;
-    }
-    let html = "<h3>Placar dos líderes</h3><ol>";
-    rankings.forEach(r => {
-      html += `<li>${r.name}: ${r.score}/3 (${r.date})</li>`;
-    });
-    html += "</ol>";
-    placa.innerHTML = html;
-  }
-
-  function tryClearScores() {
-    const senha = prompt("Digite a senha para apagar o placar:");
-    const senhaCorreta = "feqzin2025"; // Coloque sua senha aqui
-
-    if (senha === senhaCorreta) {
-      localStorage.removeItem('rankings');
-      alert("Placar apagado com sucesso!");
-      const placa = document.getElementById('placar');
-      if (placa) {
-        placa.innerHTML = "<p>Placar apagado.</p>";
-      }
-    } else {
-      alert("Senha incorreta! Você não pode apagar o placar.");
-    }
-  }
-
-  // Exibe o ranking ao carregar, caso já tenha algo salvo
-  window.onload = function() {
-    showRanking();
-  };
-</script>
-
-</body>
-</html>
+      oncaGif.style.display
