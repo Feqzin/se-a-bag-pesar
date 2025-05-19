@@ -260,12 +260,11 @@
 
     // Elementos do DOM
     const startBtn = document.getElementById('startBtn');
-    const clearBtn = document.getElementById('clearBtn');
-    const submitBtn = document.getElementById('submitBtn');
     const playerNameInput = document.getElementById('playerName');
     const ipWarning = document.getElementById('ipWarning');
     const quizElement = document.getElementById('quiz');
     const introElement = document.getElementById('intro');
+    const submitBtn = document.getElementById('submitBtn');
 
     // Variáveis de estado
     let currentPlayerName = null;
@@ -273,30 +272,35 @@
     let currentQuestionIndex = 0;
     const totalQuestions = 4;
 
-    // Função para iniciar o quiz - VERSÃO CORRIGIDA
+    // Função para iniciar o quiz - VERSÃO DEFINITIVA
     async function startQuiz() {
       try {
         const name = playerNameInput.value.trim();
         if (!name) {
-          alert('Digite seu nome para começar.');
+          alert('Por favor, digite seu nome para começar.');
           return;
         }
 
-        // Obter IP do jogador
-        currentPlayerIP = await getUserIP();
-        if (!currentPlayerIP) {
-          alert('Não foi possível verificar seu IP. Tente novamente mais tarde.');
-          return;
+        // Obter IP do jogador com fallback
+        try {
+          const response = await fetch('https://api.ipify.org?format=json');
+          const data = await response.json();
+          currentPlayerIP = data.ip;
+        } catch (error) {
+          console.error("Erro ao obter IP:", error);
+          currentPlayerIP = 'unknown-ip';
         }
 
-        // Verificar se IP já jogou
-        const ipRef = ref(db, 'ips/' + currentPlayerIP);
-        const ipSnap = await get(ipRef);
-        
-        if (ipSnap.exists()) {
-          ipWarning.style.display = 'block';
-          startBtn.disabled = true;
-          return;
+        // Verificar se IP já jogou (apenas se conseguiu obter IP)
+        if (currentPlayerIP !== 'unknown-ip') {
+          const ipRef = ref(db, 'ips/' + currentPlayerIP);
+          const ipSnap = await get(ipRef);
+          
+          if (ipSnap.exists()) {
+            ipWarning.style.display = 'block';
+            startBtn.disabled = true;
+            return;
+          }
         }
 
         // Iniciar o jogo
@@ -306,54 +310,44 @@
         currentQuestionIndex = 0;
         showQuestion(currentQuestionIndex);
         
+        // Debug: Verifique no console se as perguntas estão sendo mostradas
+        console.log("Quiz iniciado. Mostrando pergunta:", currentQuestionIndex + 1);
+        
       } catch (error) {
         console.error("Erro ao iniciar quiz:", error);
         alert("Ocorreu um erro ao iniciar o jogo. Por favor, recarregue a página e tente novamente.");
       }
     }
 
-    // Função para mostrar a pergunta atual
+    // Função para mostrar perguntas - VERSÃO DEFINITIVA
     function showQuestion(index) {
-      // Esconde todas as perguntas
-      for(let i = 1; i <= totalQuestions; i++) {
-        const q = document.getElementById('q' + i);
-        if (q) {
-          q.classList.add('hidden');
+      // Esconder todas as perguntas primeiro
+      for (let i = 1; i <= totalQuestions; i++) {
+        const questionElement = document.getElementById(`q${i}`);
+        if (questionElement) {
+          questionElement.classList.add('hidden');
         }
       }
-      
-      // Mostra apenas a pergunta atual
-      const currentQ = document.getElementById('q' + (index + 1));
-      if (currentQ) {
-        currentQ.classList.remove('hidden');
+
+      // Mostrar apenas a pergunta atual
+      const currentQuestion = document.getElementById(`q${index + 1}`);
+      if (currentQuestion) {
+        currentQuestion.classList.remove('hidden');
       }
-      
-      // Mostra o botão de submit apenas na última pergunta
+
+      // Mostrar botão de submit apenas na última pergunta
       if (submitBtn) {
-        if (index === totalQuestions - 1) {
-          submitBtn.classList.remove('hidden');
-        } else {
-          submitBtn.classList.add('hidden');
-        }
+        submitBtn.classList.toggle('hidden', index !== totalQuestions - 1);
       }
+      
+      // Debug: Verifique no console se a pergunta está visível
+      console.log("Mostrando pergunta:", index + 1, currentQuestion ? "encontrada" : "não encontrada");
     }
 
-    // Obter IP do jogador
-    async function getUserIP() {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        const data = await response.json();
-        return data.ip;
-      } catch (error) {
-        console.error("Erro ao obter IP:", error);
-        return null;
-      }
-    }
-
-    // Vincular evento de clique ao botão Iniciar
+    // Event listener para o botão Começar o jogo
     startBtn.addEventListener('click', startQuiz);
 
-    // Vincular evento de mudança para as respostas
+    // Avançar para próxima pergunta ao responder
     document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
       input.addEventListener('change', () => {
         if (currentQuestionIndex < totalQuestions - 1) {
@@ -363,22 +357,12 @@
       });
     });
 
-    // Restante do seu código (salvar pontuação, placar de líderes, etc.)
-    // ... (mantenha todas as outras funções como estão)
-    
-    // Função para salvar pontuação
-    async function saveScore(name, score, location, ip) {
-      const playerRef = ref(db, 'players/' + name);
-      const ipRef = ref(db, 'ips/' + ip);
-      await set(playerRef, { score, location, ip });
-      await set(ipRef, { player: name, timestamp: Date.now() });
-    }
-
     // Função para verificar respostas
     async function checkAnswers() {
       let score = 0;
       
-      for(let i=1; i<=totalQuestions; i++) {
+      // Verificar todas as respostas
+      for(let i = 1; i <= totalQuestions; i++) {
         const selected = document.querySelector(`input[name="q${i}"]:checked`);
         if (!selected) {
           alert(`Responda a pergunta ${i} antes de continuar.`);
@@ -387,26 +371,46 @@
         score += Number(selected.value);
       }
 
-      const location = window.location.href;
-      await saveScore(currentPlayerName, score, location, currentPlayerIP);
+      // Salvar resultado
+      try {
+        const location = window.location.href;
+        await saveScore(currentPlayerName, score, location, currentPlayerIP);
+      } catch (error) {
+        console.error("Erro ao salvar pontuação:", error);
+        alert("Ocorreu um erro ao salvar sua pontuação. Suas respostas foram registradas localmente.");
+      }
 
+      // Mostrar resultado final
       document.getElementById('quiz').classList.add('hidden');
       const finalMessage = document.getElementById('finalMessage');
       finalMessage.classList.remove('hidden');
 
       const scoreDisplay = document.getElementById('scoreDisplay');
       scoreDisplay.textContent = `Sua pontuação: ${score} / ${totalQuestions}`;
-      finalMessage.querySelector('h2').textContent = finalMessages[score] || "Obrigado por jogar!";
+      
+      // Mensagem final baseada na pontuação
+      const message = finalMessages[score] || "Obrigado por jogar!";
+      finalMessage.querySelector('h2').textContent = message;
 
+      // Mostrar GIF se acertou tudo
       if(score === totalQuestions) {
         document.getElementById('backgroundGif').style.display = 'block';
       }
 
+      // Atualizar placar
       loadLeaderboard();
     }
 
     // Vincular evento de clique ao botão Ver resultado
     submitBtn.addEventListener('click', checkAnswers);
+
+    // Função para salvar pontuação no Firebase
+    async function saveScore(name, score, location, ip) {
+      const playerRef = ref(db, 'players/' + name);
+      const ipRef = ref(db, 'ips/' + ip);
+      await set(playerRef, { score, location, ip });
+      await set(ipRef, { player: name, timestamp: Date.now() });
+    }
 
     // Função para carregar o placar de líderes
     function loadLeaderboard() {
@@ -422,28 +426,17 @@
         }
         
         const players = snapshot.val();
-        const sortedPlayers = Object.entries(players).sort((a,b) => b[1].score - a[1].score);
+        const sortedPlayers = Object.entries(players)
+          .sort((a, b) => b[1].score - a[1].score)
+          .slice(0, 10); // Mostrar apenas os top 10
         
-        for (const [name, data] of sortedPlayers) {
+        sortedPlayers.forEach(([name, data]) => {
           const li = document.createElement('li');
           li.textContent = `${name}: ${data.score} pontos`;
           leaderboardList.appendChild(li);
-        }
+        });
       });
     }
-
-    // Inicializar placar
-    loadLeaderboard();
-
-    // Função para limpar placar (admin)
-    clearBtn.addEventListener('click', async () => {
-      const senha = prompt("Digite a senha de administrador:");
-      if (senha === "bagsecreta123") {
-        openClearModal();
-      } else {
-        alert("Senha incorreta! Acesso negado.");
-      }
-    });
 
     // Função para abrir modal de limpeza
     function openClearModal() {
@@ -470,7 +463,7 @@
           div.innerHTML = `
             <label>
               <input type="checkbox" name="playerToDelete" value="${name}">
-              <span>${name} - ${player.score} pontos (IP: ${player.ip?.slice(0, 6)}...)</span>
+              <span>${name} - ${player.score} pontos</span>
             </label>
           `;
           playersCheckboxes.appendChild(div);
@@ -497,7 +490,7 @@
       }, { onlyOnce: true });
     }
 
-    // Função para remover placar selecionado
+    // Função para remover placar
     async function removeScore(name) {
       try {
         const playerRef = ref(db, 'players/' + name);
@@ -506,11 +499,13 @@
         if (snapshot.exists()) {
           const playerData = snapshot.val();
           
+          // Remover registro de IP associado
           if (playerData.ip) {
             const ipRef = ref(db, 'ips/' + playerData.ip);
             await remove(ipRef);
           }
           
+          // Remover jogador
           await remove(playerRef);
           return true;
         }
@@ -520,6 +515,16 @@
         return false;
       }
     }
+
+    // Event listener para o botão Limpar placar
+    clearBtn.addEventListener('click', async () => {
+      const senha = prompt("Digite a senha de administrador:");
+      if (senha === "bagsecreta123") {
+        openClearModal();
+      } else {
+        alert("Senha incorreta! Acesso negado.");
+      }
+    });
 
     // Submit do formulário de limpeza
     clearForm.addEventListener('submit', async (e) => {
@@ -534,6 +539,7 @@
       let successCount = 0;
       let failCount = 0;
       
+      // Processar cada exclusão
       for (const checkbox of checkboxes) {
         const removed = await removeScore(checkbox.value);
         if (removed) {
@@ -543,6 +549,7 @@
         }
       }
       
+      // Feedback ao usuário
       let message = `${successCount} placar(es) removido(s) com sucesso!`;
       if (failCount > 0) {
         message += `\nFalha ao remover ${failCount} placar(es).`;
@@ -550,7 +557,17 @@
       
       modalOverlay.style.display = 'none';
       alert(message);
+      loadLeaderboard(); // Atualizar o placar visível
+    });
+
+    // Inicializar placar quando a página carrega
+    document.addEventListener('DOMContentLoaded', () => {
       loadLeaderboard();
+      
+      // Debug: Verificar se todos os elementos estão carregados
+      console.log("Elementos carregados:", {
+        startBtn, playerNameInput, quizElement, introElement, submitBtn
+      });
     });
   </script>
 </body>
