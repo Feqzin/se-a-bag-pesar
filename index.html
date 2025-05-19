@@ -1,4 +1,3 @@
-
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -126,7 +125,7 @@
       });
     }
 
-    window.firebaseDB = { saveScore, renderLeaderboard };
+    window.firebaseDB = { saveScore, renderLeaderboard, db };
 
     renderLeaderboard();
   </script>
@@ -204,6 +203,17 @@
   </div>
 
   <script>
+    // Expor db globalmente para uso na função clearMyScore
+    window.db = db;
+
+    const finalMessages = {
+      4: "Você é o mestre da bag! 👑",
+      3: "Quase lá, vai com tudo!",
+      2: "Boa! Continue treinando.",
+      1: "Vamos melhorar, não desista.",
+      0: "Bora tentar de novo!"
+    };
+
     document.getElementById('startBtn').addEventListener('click', startQuiz);
     document.getElementById('clearBtn').addEventListener('click', clearMyScore);
     document.getElementById('submitBtn').addEventListener('click', checkAnswers);
@@ -216,6 +226,22 @@
       }
       document.getElementById('intro').classList.add('hidden');
       document.getElementById('quiz').classList.remove('hidden');
+      document.getElementById('leaderboard').style.display = 'block';
+
+      // Mostrar só a primeira pergunta e resetar as outras
+      for(let i = 1; i <= 4; i++) {
+        const q = document.getElementById(`q${i}`);
+        if(i === 1) {
+          q.classList.remove('hidden');
+        } else {
+          q.classList.add('hidden');
+        }
+        // Desmarcar respostas anteriores
+        const radios = q.querySelectorAll('input[type=radio]');
+        radios.forEach(r => r.checked = false);
+      }
+
+      document.getElementById('submitBtn').classList.add('hidden');
 
       const radios = document.querySelectorAll('input[type=radio]');
       radios.forEach(radio => {
@@ -224,7 +250,8 @@
           const qNum = parseInt(name.replace('q', ''));
           const currentQ = document.getElementById(`q${qNum}`);
           const nextQ = document.getElementById(`q${qNum + 1}`);
-          if (nextQ) {
+
+          if(nextQ) {
             currentQ.classList.add('hidden');
             nextQ.classList.remove('hidden');
           } else {
@@ -235,59 +262,68 @@
       });
     }
 
-    function clearMyScore() {
+    async function clearMyScore() {
       const password = prompt("Digite a senha para limpar seu placar:");
-      if (password === "bagsecreta123") {
-        const name = document.getElementById('playerName').value.trim();
-        if (!name) {
-          alert("Digite seu nome para limpar seu placar.");
-          return;
-        }
-        // Remove do Firebase
-        const playerRef = window.firebaseDB.db.ref('players/' + name);
-        playerRef.remove()
-          .then(() => {
-            alert("Seu placar foi limpo.");
-          })
-          .catch(() => {
-            alert("Erro ao limpar placar.");
-          });
-      } else {
+      if (password !== "bagsecreta123") {
         alert("Senha incorreta.");
+        return;
+      }
+      const name = document.getElementById('playerName').value.trim();
+      if (!name) {
+        alert("Digite seu nome para limpar seu placar.");
+        return;
+      }
+      try {
+        const playerRef = window.db.ref('players/' + name);
+        await playerRef.remove();
+        alert("Seu placar foi limpo.");
+        window.firebaseDB.renderLeaderboard();
+      } catch {
+        alert("Erro ao limpar placar.");
       }
     }
 
     async function checkAnswers() {
+      const playerName = document.getElementById('playerName').value.trim();
+      if (!playerName) {
+        alert("Digite seu nome.");
+        return;
+      }
+
       let score = 0;
-      for (let i = 1; i <= 4; i++) {
-        const answer = document.querySelector(`input[name=q${i}]:checked`);
-        if (answer && answer.value === '1') score++;
+      for(let i = 1; i <= 4; i++) {
+        const radios = document.getElementsByName(`q${i}`);
+        for(let r of radios) {
+          if(r.checked) {
+            score += parseInt(r.value);
+            break;
+          }
+        }
       }
 
-      const name = document.getElementById('playerName').value.trim();
-      if (!name) return;
+      // Pega localização do usuário via geolocation
+      let locationStr = "Desconhecida";
+      if (navigator.geolocation) {
+        await new Promise((resolve) => {
+          navigator.geolocation.getCurrentPosition((pos) => {
+            locationStr = `${pos.coords.latitude.toFixed(4)}, ${pos.coords.longitude.toFixed(4)}`;
+            resolve();
+          }, () => resolve());
+        });
+      }
 
-      const city = await getCityFromIP();
+      // Salvar no Firebase
+      await window.firebaseDB.saveScore(playerName, score, locationStr);
 
-      await window.firebaseDB.saveScore(name, score, city);
-
+      // Mostrar resultado
       document.getElementById('quiz').classList.add('hidden');
-      document.getElementById('finalMessage').classList.remove('hidden');
-      document.getElementById('scoreDisplay').innerText = `Você acertou ${score} de 4 perguntas.`;
+      const finalMsg = document.getElementById('finalMessage');
+      finalMsg.classList.remove('hidden');
 
-      if (score === 4) {
-        document.getElementById('backgroundGif').style.display = 'block';
-      }
-    }
+      document.getElementById('scoreDisplay').textContent = `Você acertou ${score} de 4 perguntas. ${finalMessages[score] || ''}`;
 
-    async function getCityFromIP() {
-      try {
-        const res = await fetch('https://ipapi.co/json/');
-        const json = await res.json();
-        return json.city || "Cidade desconhecida";
-      } catch {
-        return "Cidade desconhecida";
-      }
+      // Atualizar placar
+      window.firebaseDB.renderLeaderboard();
     }
   </script>
 </body>
