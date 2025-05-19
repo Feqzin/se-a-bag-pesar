@@ -119,6 +119,18 @@
     #modalButtons button {
       margin-left: 10px;
     }
+    #passwordSection {
+      margin-bottom: 15px;
+    }
+    #passwordSection input {
+      width: 100%;
+      padding: 6px;
+      font-size: 1rem;
+      border: 1px solid #0f0;
+      background-color: #000;
+      color: #0f0;
+      box-sizing: border-box;
+    }
   </style>
 </head>
 <body>
@@ -196,8 +208,12 @@
   <!-- Modal para limpar placares -->
   <div id="modalOverlay">
     <div id="modalContent">
-      <h2>Selecionar placares para excluir</h2>
-      <form id="clearForm">
+      <h2>Limpar placar</h2>
+      <div id="passwordSection">
+        <label for="passwordInput" style="color:#0f0;">Digite a senha para continuar:</label>
+        <input type="password" id="passwordInput" autocomplete="off" />
+      </div>
+      <form id="clearForm" class="hidden">
         <div id="playersCheckboxes" style="max-height: 300px; overflow-y: auto;"></div>
         <div id="modalButtons">
           <button type="button" id="cancelClear">Cancelar</button>
@@ -240,210 +256,270 @@
     const submitBtn = document.getElementById('submitBtn');
     const playerNameInput = document.getElementById('playerName');
 
+    const introDiv = document.getElementById('intro');
+    const quizDiv = document.getElementById('quiz');
+    const finalMessageDiv = document.getElementById('finalMessage');
+    const scoreDisplay = document.getElementById('scoreDisplay');
+
+    const backgroundGif = document.getElementById('backgroundGif');
+
+    const questions = [
+      document.getElementById('q1'),
+      document.getElementById('q2'),
+      document.getElementById('q3'),
+      document.getElementById('q4')
+    ];
+
+    const leaderboardList = document.getElementById('leaderboardList');
+
     const modalOverlay = document.getElementById('modalOverlay');
-    const playersCheckboxes = document.getElementById('playersCheckboxes');
+    const passwordInput = document.getElementById('passwordInput');
     const clearForm = document.getElementById('clearForm');
+    const playersCheckboxes = document.getElementById('playersCheckboxes');
     const cancelClear = document.getElementById('cancelClear');
 
-    let currentPlayerName = null;
-    let currentPlayerIP = null;
+    // Variáveis de controle
+    let currentQuestionIndex = 0;
+    let score = 0;
+    let userIP = null;
+    let userHasPlayed = false;
+    const correctAnswers = [1, 1, 1, 1]; // índices dos valores '1' para respostas corretas
 
-    startBtn.addEventListener('click', startQuiz);
-    clearBtn.addEventListener('click', openClearModal);
-    submitBtn.addEventListener('click', checkAnswers);
-    cancelClear.addEventListener('click', () => {
-      modalOverlay.style.display = 'none';
-    });
+    // Função para mostrar leaderboard atualizado do Firebase
+    function loadLeaderboard() {
+      const leaderboardRef = ref(db, 'placar/');
+      onValue(leaderboardRef, (snapshot) => {
+        const data = snapshot.val();
+        leaderboardList.innerHTML = '';
+        if (!data) {
+          leaderboardList.innerHTML = '<li>Nenhum placar registrado.</li>';
+          return;
+        }
+        // Ordenar por score desc
+        const players = Object.entries(data).sort((a,b) => b[1].score - a[1].score);
+        players.forEach(([name, info]) => {
+          leaderboardList.innerHTML += `<li><strong>${name}</strong>: ${info.score}</li>`;
+        });
+      });
+    }
 
-    async function getUserIP() {
+    // Buscar IP do usuário via API externa (sem acesso a fetch direto por política, vamos usar JSONP hack)
+    async function fetchUserIP() {
       try {
-        const res = await fetch('https://api.ipify.org?format=json');
-        const data = await res.json();
-        return data.ip;
-      } catch {
+        const response = await fetch('https://api64.ipify.org?format=json');
+        const json = await response.json();
+        return json.ip;
+      } catch(e) {
+        console.error('Não foi possível obter IP:', e);
         return null;
       }
     }
 
-    async function saveScore(name, score, location, ip) {
-      const playerRef = ref(db, 'players/' + name);
-      const ipRef = ref(db, 'ips/' + ip);
-      await set(playerRef, { score, location, ip });
-      await set(ipRef, { player: name });
-    }
-
-    async function removeScore(name) {
-      // Para remover o IP, precisamos buscar o IP do jogador
-      const playerRef = ref(db, 'players/' + name);
-      const snapshot = await get(playerRef);
-      if (snapshot.exists()) {
-        const data = snapshot.val();
-        if (data.ip) {
-          const ipRef = ref(db, 'ips/' + data.ip);
-          await remove(ipRef);
+    // Mostrar próxima pergunta
+    function showNextQuestion() {
+      if (currentQuestionIndex > 0) questions[currentQuestionIndex - 1].classList.add('hidden');
+      if (currentQuestionIndex < questions.length) {
+        questions[currentQuestionIndex].classList.remove('hidden');
+        currentQuestionIndex++;
+        if (currentQuestionIndex === questions.length) {
+          submitBtn.classList.remove('hidden');
         }
       }
-      await remove(playerRef);
     }
 
-    function openClearModal() {
-      playersCheckboxes.innerHTML = '';
-      const playersRef = ref(db, 'players/');
-      onValue(playersRef, (snapshot) => {
-        playersCheckboxes.innerHTML = '';
-        if (!snapshot.exists()) {
-          playersCheckboxes.innerHTML = '<p>Nenhum placar para excluir.</p>';
-          return;
-        }
-        const players = snapshot.val();
-        for (const name in players) {
-          const player = players[name];
-          const label = document.createElement('label');
-          label.innerHTML = <input type="checkbox" name="playerToDelete" value="${name}"> ${name} - ${player.score} pontos;
-          playersCheckboxes.appendChild(label);
-        }
-      }, { onlyOnce: true });
-      modalOverlay.style.display = 'flex';
-    }
-
-    clearForm.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const checked = [...clearForm.elements['playerToDelete']].filter(i => i.checked);
-      if (checked.length === 0) {
-        alert('Selecione ao menos um placar para excluir.');
-        return;
-      }
-      for (const checkbox of checked) {
-        await removeScore(checkbox.value);
-      }
-      modalOverlay.style.display = 'none';
-      loadLeaderboard();
-      alert('Placar(s) excluído(s) com sucesso! Jogadores excluídos poderão jogar novamente.');
-    });
-
-    // Carrega placar na lateral
-    function loadLeaderboard() {
-      const leaderboardList = document.getElementById('leaderboardList');
-      const playersRef = ref(db, 'players/');
-      onValue(playersRef, (snapshot) => {
-        leaderboardList.innerHTML = '';
-        if (!snapshot.exists()) {
-          leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
-          return;
-        }
-        const players = snapshot.val();
-        // Ordena por score desc
-        const sortedPlayers = Object.entries(players).sort((a,b) => b[1].score - a[1].score);
-        for (const [name, data] of sortedPlayers) {
-          const li = document.createElement('li');
-          li.textContent = ${name}: ${data.score} pontos;
-          leaderboardList.appendChild(li);
-        }
+    // Validar se o usuário respondeu todas as perguntas
+    function allQuestionsAnswered() {
+      return questions.every((q) => {
+        return Array.from(q.querySelectorAll('input[type=radio]')).some(radio => radio.checked);
       });
     }
 
-    loadLeaderboard();
+    // Calcular a pontuação
+    function calculateScore() {
+      let total = 0;
+      questions.forEach((q, idx) => {
+        const selected = q.querySelector('input[type=radio]:checked');
+        if (selected && parseInt(selected.value, 10) === 1) total++;
+      });
+      return total;
+    }
 
-    async function startQuiz() {
+    // Salvar pontuação no Firebase (chave = nome do jogador)
+    function saveScore(name, score) {
+      const placarRef = ref(db, `placar/${name}`);
+      set(placarRef, { score }).catch(console.error);
+    }
+
+    // Verificar se IP já jogou (Firebase -> armazenar IPs jogados)
+    async function checkIfIPPlayed(ip) {
+      if (!ip) return false;
+      const ipRef = ref(db, `ips/${ip.replace(/\./g, '-')}`); // substituir pontos para chave válida
+      const snapshot = await get(ipRef);
+      return snapshot.exists();
+    }
+
+    // Marcar IP como jogado
+    function markIPAsPlayed(ip) {
+      if (!ip) return;
+      const ipRef = ref(db, `ips/${ip.replace(/\./g, '-')}`);
+      set(ipRef, true);
+    }
+
+    // Remover IP (liberar para jogar)
+    function removeIP(ip) {
+      if (!ip) return;
+      const ipRef = ref(db, `ips/${ip.replace(/\./g, '-')}`);
+      remove(ipRef);
+    }
+
+    // Mostrar modal para limpar placar
+    function openModal() {
+      passwordInput.value = '';
+      clearForm.classList.add('hidden');
+      playersCheckboxes.innerHTML = '';
+      modalOverlay.style.display = 'flex';
+      passwordInput.focus();
+    }
+
+    function closeModal() {
+      modalOverlay.style.display = 'none';
+    }
+
+    // Montar lista de jogadores para limpar
+    async function loadPlayersForClear() {
+      const placarRef = ref(db, 'placar/');
+      const snapshot = await get(placarRef);
+      const data = snapshot.val();
+      playersCheckboxes.innerHTML = '';
+      if (!data) {
+        playersCheckboxes.innerHTML = '<p>Nenhum jogador registrado.</p>';
+        return;
+      }
+      Object.keys(data).forEach(name => {
+        const id = 'chk_' + name.replace(/[^a-zA-Z0-9]/g, '_');
+        playersCheckboxes.innerHTML += `
+          <label><input type="checkbox" id="${id}" name="playersToClear" value="${name}"/> ${name}</label>
+        `;
+      });
+    }
+
+    // Limpar dados dos jogadores selecionados e IP atual
+    async function clearSelectedPlayers(selectedNames) {
+      if (!selectedNames.length) return;
+      for (const name of selectedNames) {
+        const playerRef = ref(db, `placar/${name}`);
+        await remove(playerRef);
+      }
+      if (userIP) removeIP(userIP); // liberar o IP para jogar de novo
+      alert('Jogadores removidos e seu IP liberado. Você pode jogar novamente.');
+      closeModal();
+      loadLeaderboard();
+    }
+
+    // Eventos
+
+    startBtn.addEventListener('click', async () => {
       const name = playerNameInput.value.trim();
       if (!name) {
         alert('Digite seu nome para começar.');
         return;
       }
 
-      // Obtém o IP do usuário
-      currentPlayerIP = await getUserIP();
-      if (!currentPlayerIP) {
-        alert('Não foi possível obter seu IP. Tente novamente mais tarde.');
-        return;
+      userIP = await fetchUserIP();
+      if (userIP) {
+        userHasPlayed = await checkIfIPPlayed(userIP);
+        if (userHasPlayed) {
+          alert('Você já jogou. Tente limpar seu placar para jogar novamente.');
+          return;
+        }
       }
 
-      currentPlayerName = name;
-
-      // Verifica se o IP já está no banco (se já jogou)
-      const ipRef = ref(db, 'ips/' + currentPlayerIP);
-      const ipSnap = await get(ipRef);
-      if (ipSnap.exists()) {
-        alert('Você já jogou! Não pode jogar novamente.');
-        return;
-      }
-
-      document.getElementById('intro').classList.add('hidden');
-      document.getElementById('quiz').classList.remove('hidden');
-
-      // Inicializa perguntas
+      // Iniciar quiz
+      introDiv.classList.add('hidden');
+      quizDiv.classList.remove('hidden');
+      backgroundGif.style.display = 'block';
       currentQuestionIndex = 0;
-      showQuestion(currentQuestionIndex);
+      score = 0;
 
-      // Oculta botão submit no começo
+      questions.forEach(q => {
+        q.classList.add('hidden');
+        const inputs = q.querySelectorAll('input[type=radio]');
+        inputs.forEach(i => (i.checked = false));
+      });
       submitBtn.classList.add('hidden');
-    }
 
-    const totalQuestions = 4;
-    let currentQuestionIndex = 0;
+      showNextQuestion();
+    });
 
-    function showQuestion(index) {
-      for(let i = 1; i <= totalQuestions; i++) {
-        const q = document.getElementById('q' + i);
-        if(i === index + 1) {
-          q.classList.remove('hidden');
-        } else {
-          q.classList.add('hidden');
-        }
-      }
-
-      if (index === totalQuestions - 1) {
-        submitBtn.classList.remove('hidden');
-      } else {
-        submitBtn.classList.add('hidden');
-      }
-    }
-
-    // Avança para próxima pergunta ao responder
-    document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
-      input.addEventListener('change', () => {
-        if (currentQuestionIndex < totalQuestions - 1) {
-          currentQuestionIndex++;
-          showQuestion(currentQuestionIndex);
-        }
+    // Avançar pergunta ao marcar uma resposta
+    questions.forEach((questionDiv, idx) => {
+      questionDiv.querySelectorAll('input[type=radio]').forEach(radio => {
+        radio.addEventListener('change', () => {
+          if (idx < questions.length - 1) {
+            showNextQuestion();
+          }
+        });
       });
     });
 
-    async function checkAnswers() {
-      // Soma pontos
-      let score = 0;
-      for(let i=1; i<=totalQuestions; i++) {
-        const selected = document.querySelector(input[name="q${i}"]:checked);
-        if (!selected) {
-          alert(Responda a pergunta ${i} antes de continuar.);
-          return;
-        }
-        score += Number(selected.value);
+    submitBtn.addEventListener('click', () => {
+      if (!allQuestionsAnswered()) {
+        alert('Responda todas as perguntas antes de enviar.');
+        return;
       }
 
-      // Salva resultado e IP
-      const location = window.location.href;
-      await saveScore(currentPlayerName, score, location, currentPlayerIP);
+      score = calculateScore();
+      scoreDisplay.textContent = `Você acertou ${score} de ${questions.length}. ${finalMessages[score] || ''}`;
 
-      document.getElementById('quiz').classList.add('hidden');
-      const finalMessage = document.getElementById('finalMessage');
-      finalMessage.classList.remove('hidden');
+      // Salvar no banco
+      const name = playerNameInput.value.trim();
+      saveScore(name, score);
+      if (userIP) markIPAsPlayed(userIP);
 
-      const scoreDisplay = document.getElementById('scoreDisplay');
-      scoreDisplay.textContent = Sua pontuação: ${score} / ${totalQuestions};
-
-      // Exibe mensagem final
-      finalMessage.querySelector('h2').textContent = finalMessages[score] || "Obrigado por jogar!";
-
-      // Mostra gif ao máximo de pontos
-      if(score === totalQuestions) {
-        document.getElementById('backgroundGif').style.display = 'block';
-      } else {
-        document.getElementById('backgroundGif').style.display = 'none';
-      }
+      // Mostrar resultado
+      quizDiv.classList.add('hidden');
+      finalMessageDiv.classList.remove('hidden');
+      backgroundGif.style.display = 'none';
 
       loadLeaderboard();
-    }
+    });
+
+    // Botão limpar placar
+    clearBtn.addEventListener('click', () => {
+      openModal();
+    });
+
+    // Controle da senha no modal
+    passwordInput.addEventListener('input', async () => {
+      const senhaCorreta = 'secreta123'; // Troque aqui a senha que preferir
+      if (passwordInput.value === senhaCorreta) {
+        await loadPlayersForClear();
+        clearForm.classList.remove('hidden');
+      } else {
+        clearForm.classList.add('hidden');
+        playersCheckboxes.innerHTML = '';
+      }
+    });
+
+    cancelClear.addEventListener('click', () => {
+      closeModal();
+    });
+
+    clearForm.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const selectedCheckboxes = clearForm.querySelectorAll('input[name="playersToClear"]:checked');
+      const selectedNames = Array.from(selectedCheckboxes).map(cb => cb.value);
+      if (!selectedNames.length) {
+        alert('Selecione pelo menos um jogador para limpar.');
+        return;
+      }
+      if (confirm('Confirma exclusão dos placares selecionados?')) {
+        await clearSelectedPlayers(selectedNames);
+      }
+    });
+
+    // Inicializa leaderboard ao carregar a página
+    loadLeaderboard();
   </script>
 </body>
 </html>
