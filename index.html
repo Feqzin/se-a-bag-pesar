@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Se a bag pesar</title>
+  <style>
+    body {
+      margin: 0;
+      font-family: 'Courier New', Courier, monospace;
+      background-color: #000;
+      color: #0f0;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      flex-direction: column;
+      text-align: center;
+    }
+    .hidden { display: none; }
+    button {
+      margin-top: 20px;
+      padding: 12px 24px;
+      background-color: #0f0;
+      border: none;
+      color: #000;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+    }
+    .question {
+      margin-top: 30px;
+    }
+    .question p {
+      margin-bottom: 10px;
+    }
+    .answers label {
+      display: block;
+      margin: 6px 0;
+      cursor: pointer;
+    }
+    #finalMessage a {
+      color: #0f0;
+      font-weight: bold;
+      font-size: 1.2rem;
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div id="intro">
+    <h1>"Se a bag pesar..."</h1>
+    <p>Você vai aguentar ou vai correr?</p>
+    <button onclick="startQuiz()">Começar o jogo</button>
+  </div>
+
+  <div id="quiz" class="hidden">
+    <div class="question" id="q1">
+      <p>1. Qual animal aparece como símbolo de lucro no som?</p>
+      <div class="answers">
+        <label><input type="radio" name="q1" value="0" /> Tigre</label>
+        <label><input type="radio" name="q1" value="1" /> Onça</label>
+        <label><input type="radio" name="q1" value="0" /> Cobra</label>
+        <label><input type="radio" name="q1" value="0" /> Corvo</label>
+      </div>
+    </div>
+
+    <div class="question hidden" id="q2">
+      <p>2. O que o “Magikarp” representa na letra?</p>
+      <div class="answers">
+        <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
+        <label><input type="radio" name="q2" value="0" /> A grana nadando</label>
+        <label><input type="radio" name="q2" value="1" /> Evolução no corre</label>
+        <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
+      </div>
+    </div>
+
+    <div class="question hidden" id="q3">
+      <p>3. O que acontece “se a bag pesar”?</p>
+      <div class="answers">
+        <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
+        <label><input type="radio" name="q3" value="0" /> Eu corro</label>
+        <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
+        <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
+      </div>
+    </div>
+
+    <button class="hidden" id="submitBtn" onclick="checkAnswers()">Ver resultado</button>
+  </div>
+
+  <div id="finalMessage" class="hidden">
+    <h2>Você aguenta a bag.</h2>
+    <p><a href="#" target="_blank">OUVIR "Se a bag pesar"</a></p>
+  </div>
+
+  <script>
+    let currentQuestion = 1;
+    function startQuiz() {
+      document.getElementById('intro').classList.add('hidden');
+      document.getElementById('quiz').classList.remove('hidden');
+    }
+
+    const radios = document.querySelectorAll('input[type=radio]');
+    radios.forEach(radio => {
+      radio.addEventListener('change', (e) => {
+        const name = e.target.name;
+        const qNum = parseInt(name.replace('q', ''));
+        if (qNum < 3) {
+          document.getElementById(`q${qNum}`).classList.add('hidden');
+          document.getElementById(`q${qNum + 1}`).classList.remove('hidden');
+        } else {
+          document.getElementById('submitBtn').classList.remove('hidden');
+        }
+      });
+    });
+
+    function checkAnswers() {
+      let score = 0;
+      for (let i = 1; i <= 3; i++) {
+        const answer = document.querySelector(`input[name=q${i}]:checked`);
+        if (answer && answer.value === '1') score++;
+      }
+      document.getElementById('quiz').classList.add('hidden');
+      document.getElementById('finalMessage').classList.remove('hidden');
+    }
+  </script>
+</body>
+</html>
