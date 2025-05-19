@@ -66,6 +66,7 @@
     #leaderboard {
       width: 250px;
       margin-left: 40px;
+      display: block;
     }
     #leaderboard h3 {
       color: #0f0;
@@ -78,57 +79,6 @@
       margin-bottom: 10px;
     }
   </style>
-  <script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
-    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
-    import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js";
-
-    const firebaseConfig = {
-      apiKey: "AIzaSyAH6bRDAGuKVdv6XDWkrwpX-prapchLYTw",
-      authDomain: "se-a-bag-pesar.firebaseapp.com",
-      databaseURL: "https://se-a-bag-pesar-default-rtdb.firebaseio.com",
-      projectId: "se-a-bag-pesar",
-      storageBucket: "se-a-bag-pesar.firebasestorage.app",
-      messagingSenderId: "925392204050",
-      appId: "1:925392204050:web:006c6d987578316d8e03cb",
-      measurementId: "G-EBEW6G9LYJ"
-    };
-
-    const app = initializeApp(firebaseConfig);
-    const analytics = getAnalytics(app);
-    const db = getDatabase(app);
-
-    // Salva resultado no Firebase
-    async function saveScore(name, score, location) {
-      const playerRef = ref(db, 'players/' + name);
-      await set(playerRef, { score, location });
-    }
-
-    // Renderiza leaderboard atualizada
-    function renderLeaderboard() {
-      const playersRef = ref(db, 'players');
-      onValue(playersRef, (snapshot) => {
-        const data = snapshot.val();
-        const list = document.getElementById('leaderboardList');
-        list.innerHTML = '';
-
-        if (!data) return;
-
-        // Ordena desc pelo score
-        const sortedPlayers = Object.entries(data).sort((a, b) => b[1].score - a[1].score);
-
-        sortedPlayers.forEach(([playerName, entry]) => {
-          const li = document.createElement('li');
-          li.textContent = `${playerName} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`;
-          list.appendChild(li);
-        });
-      });
-    }
-
-    window.firebaseDB = { saveScore, renderLeaderboard, db };
-
-    renderLeaderboard();
-  </script>
 </head>
 <body>
   <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
@@ -202,9 +152,25 @@
     </div>
   </div>
 
-  <script>
-    // Expor db globalmente para uso na função clearMyScore
-    window.db = db;
+  <script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js";
+    import { getAnalytics } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-analytics.js";
+    import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js";
+
+    const firebaseConfig = {
+      apiKey: "AIzaSyAH6bRDAGuKVdv6XDWkrwpX-prapchLYTw",
+      authDomain: "se-a-bag-pesar.firebaseapp.com",
+      databaseURL: "https://se-a-bag-pesar-default-rtdb.firebaseio.com",
+      projectId: "se-a-bag-pesar",
+      storageBucket: "se-a-bag-pesar.firebasestorage.app",
+      messagingSenderId: "925392204050",
+      appId: "1:925392204050:web:006c6d987578316d8e03cb",
+      measurementId: "G-EBEW6G9LYJ"
+    };
+
+    const app = initializeApp(firebaseConfig);
+    const analytics = getAnalytics(app);
+    const db = getDatabase(app);
 
     const finalMessages = {
       4: "Você é o mestre da bag! 👑",
@@ -214,12 +180,48 @@
       0: "Bora tentar de novo!"
     };
 
-    document.getElementById('startBtn').addEventListener('click', startQuiz);
-    document.getElementById('clearBtn').addEventListener('click', clearMyScore);
-    document.getElementById('submitBtn').addEventListener('click', checkAnswers);
+    async function saveScore(name, score, location) {
+      const playerRef = ref(db, 'players/' + name);
+      await set(playerRef, { score, location });
+    }
+
+    async function clearScore(name) {
+      const playerRef = ref(db, 'players/' + name);
+      await remove(playerRef);
+    }
+
+    function renderLeaderboard() {
+      const playersRef = ref(db, 'players');
+      onValue(playersRef, (snapshot) => {
+        const data = snapshot.val();
+        const list = document.getElementById('leaderboardList');
+        list.innerHTML = '';
+
+        if (!data) return;
+
+        const sortedPlayers = Object.entries(data).sort((a, b) => b[1].score - a[1].score);
+
+        sortedPlayers.forEach(([playerName, entry]) => {
+          const li = document.createElement('li');
+          li.textContent = `${playerName} - ${entry.score}/4 (${entry.location || 'Localização desconhecida'})`;
+          list.appendChild(li);
+        });
+      });
+    }
+
+    renderLeaderboard();
+
+    const startBtn = document.getElementById('startBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const submitBtn = document.getElementById('submitBtn');
+    const playerNameInput = document.getElementById('playerName');
+
+    startBtn.addEventListener('click', startQuiz);
+    clearBtn.addEventListener('click', clearMyScore);
+    submitBtn.addEventListener('click', checkAnswers);
 
     function startQuiz() {
-      const playerName = document.getElementById('playerName').value.trim();
+      const playerName = playerNameInput.value.trim();
       if (!playerName) {
         alert("Digite seu nome para começar.");
         return;
@@ -228,7 +230,6 @@
       document.getElementById('quiz').classList.remove('hidden');
       document.getElementById('leaderboard').style.display = 'block';
 
-      // Mostrar só a primeira pergunta e resetar as outras
       for(let i = 1; i <= 4; i++) {
         const q = document.getElementById(`q${i}`);
         if(i === 1) {
@@ -236,15 +237,23 @@
         } else {
           q.classList.add('hidden');
         }
-        // Desmarcar respostas anteriores
         const radios = q.querySelectorAll('input[type=radio]');
         radios.forEach(r => r.checked = false);
       }
 
-      document.getElementById('submitBtn').classList.add('hidden');
+      submitBtn.classList.add('hidden');
 
+      // Remove antigos event listeners antes de adicionar novos
       const radios = document.querySelectorAll('input[type=radio]');
       radios.forEach(radio => {
+        // Clone para remover event listeners antigos
+        const newRadio = radio.cloneNode(true);
+        radio.parentNode.replaceChild(newRadio, radio);
+      });
+
+      // Agora adiciona evento uma vez
+      const newRadios = document.querySelectorAll('input[type=radio]');
+      newRadios.forEach(radio => {
         radio.addEventListener('change', e => {
           const name = e.target.name;
           const qNum = parseInt(name.replace('q', ''));
@@ -256,9 +265,9 @@
             nextQ.classList.remove('hidden');
           } else {
             currentQ.classList.add('hidden');
-            document.getElementById('submitBtn').classList.remove('hidden');
+            submitBtn.classList.remove('hidden');
           }
-        });
+        }, { once: true });
       });
     }
 
@@ -268,23 +277,22 @@
         alert("Senha incorreta.");
         return;
       }
-      const name = document.getElementById('playerName').value.trim();
+      const name = playerNameInput.value.trim();
       if (!name) {
         alert("Digite seu nome para limpar seu placar.");
         return;
       }
       try {
-        const playerRef = window.db.ref('players/' + name);
-        await playerRef.remove();
+        await clearScore(name);
         alert("Seu placar foi limpo.");
-        window.firebaseDB.renderLeaderboard();
+        renderLeaderboard();
       } catch {
         alert("Erro ao limpar placar.");
       }
     }
 
     async function checkAnswers() {
-      const playerName = document.getElementById('playerName').value.trim();
+      const playerName = playerNameInput.value.trim();
       if (!playerName) {
         alert("Digite seu nome.");
         return;
@@ -301,7 +309,6 @@
         }
       }
 
-      // Pega localização do usuário via geolocation
       let locationStr = "Desconhecida";
       if (navigator.geolocation) {
         await new Promise((resolve) => {
@@ -312,18 +319,15 @@
         });
       }
 
-      // Salvar no Firebase
-      await window.firebaseDB.saveScore(playerName, score, locationStr);
+      await saveScore(playerName, score, locationStr);
 
-      // Mostrar resultado
       document.getElementById('quiz').classList.add('hidden');
       const finalMsg = document.getElementById('finalMessage');
       finalMsg.classList.remove('hidden');
 
       document.getElementById('scoreDisplay').textContent = `Você acertou ${score} de 4 perguntas. ${finalMessages[score] || ''}`;
 
-      // Atualizar placar
-      window.firebaseDB.renderLeaderboard();
+      renderLeaderboard();
     }
   </script>
 </body>
