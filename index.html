@@ -632,6 +632,9 @@
         const { ref, get, remove } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
         const playerRef = ref(db, 'players/' + sanitizeFirebaseKey(name));
         const snapshot = await get(playerRef);
+        console.log("Tentando excluir jogador:", name);
+        console.log("Snapshot existe?", snapshot.exists());
+
         
         if (snapshot.exists()) {
           const playerData = snapshot.val();
