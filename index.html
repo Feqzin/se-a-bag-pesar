@@ -141,6 +141,10 @@
       border: 1px solid #0f0;
       border-radius: 4px;
     }
+    .processing {
+      opacity: 0.7;
+      cursor: not-allowed;
+    }
   </style>
 </head>
 <body>
@@ -160,47 +164,7 @@
       </div>
 
       <div id="quiz" class="hidden">
-        <div class="question" id="q1">
-          <p>1. Qual animal aparece como símbolo de lucro no som?</p>
-          <div class="answers">
-            <label><input type="radio" name="q1" value="0" /> Tigre</label>
-            <label><input type="radio" name="q1" value="1" /> Onça</label>
-            <label><input type="radio" name="q1" value="0" /> Cobra</label>
-            <label><input type="radio" name="q1" value="0" /> Corvo</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q2">
-          <p>2. O que o "Magikarp" representa na letra?</p>
-          <div class="answers">
-            <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
-            <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
-            <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
-            <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q3">
-          <p>3. O que acontece "se a bag pesar"?</p>
-          <div class="answers">
-            <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
-            <label><input type="radio" name="q3" value="0" /> Eu corro</label>
-            <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
-            <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q4">
-          <p>4. Quando será lançada a música?</p>
-          <div class="answers">
-            <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
-            <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
-            <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
-            <label><input type="radio" name="q4" value="0" /> 01-05-25</label>
-          </div>
-        </div>
-
-        <button class="hidden" id="submitBtn">Ver resultado</button>
+        <!-- ... (mantenha as perguntas do quiz iguais) ... -->
       </div>
 
       <div id="finalMessage" class="hidden">
@@ -270,291 +234,41 @@
       return key.toString().replace(/[.#$\[\]/]/g, '-');
     }
 
-    // Variáveis globais
-    let currentPlayerName = null;
-    let currentPlayerIP = null;
-    let currentQuestionIndex = 0;
-    const totalQuestions = 4;
+    // ... (mantenha as outras funções auxiliares existentes) ...
 
-    // Funções auxiliares para mostrar/esconder elementos
-    function hideElement(id) {
-      const el = document.getElementById(id);
-      if (el) el.classList.add('hidden');
-    }
-
-    function showElement(id) {
-      const el = document.getElementById(id);
-      if (el) el.classList.remove('hidden');
-    }
-
-    // Função para obter IP com fallback
-    async function getPlayerIP() {
-      try {
-        const response = await fetch('https://api.ipify.org?format=json');
-        if (!response.ok) throw new Error('Falha na resposta');
-        const data = await response.json();
-        return sanitizeFirebaseKey(data.ip);
-      } catch (error) {
-        console.warn("Não foi possível obter IP, usando fallback:", error);
-        return 'temp-ip-' + Math.random().toString(36).substr(2, 9);
-      }
-    }
-
-    // Função para carregar o placar de líderes
-    async function loadLeaderboard() {
-      const leaderboardList = document.getElementById('leaderboardList');
-      if (!leaderboardList) return;
-
+    // Função para remover placar - VERSÃO CORRIGIDA
+    async function removeScore(name) {
       if (!firebaseInitialized) {
-        leaderboardList.innerHTML = '<li>Placar indisponível</li>';
-        return;
+        console.error("Firebase não inicializado");
+        return false;
       }
 
       try {
-        const { ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
-        const playersRef = ref(db, 'players');
+        const { ref, get, remove } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
         
-        onValue(playersRef, (snapshot) => {
-          if (!snapshot.exists()) {
-            leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
-            return;
-          }
-          
-          const players = snapshot.val();
-          const playersArray = [];
-          
-          for (const key in players) {
-            if (players.hasOwnProperty(key)) {
-              playersArray.push({
-                name: key,
-                score: players[key].score || 0,
-                timestamp: players[key].timestamp || 0
-              });
-            }
-          }
-          
-          playersArray.sort((a, b) => {
-            if (b.score !== a.score) return b.score - a.score;
-            return a.timestamp - b.timestamp;
-          });
-          
-          const topPlayers = playersArray.slice(0, 10);
-          
-          leaderboardList.innerHTML = '';
-          if (topPlayers.length === 0) {
-            leaderboardList.innerHTML = '<li>Nenhum placar ainda.</li>';
-            return;
-          }
-          
-          topPlayers.forEach((player, index) => {
-            const li = document.createElement('li');
-            li.textContent = `${index + 1}. ${player.name}: ${player.score} pontos`;
-            leaderboardList.appendChild(li);
-          });
-          
-        }, (error) => {
-          console.error("Erro ao carregar placar:", error);
-          leaderboardList.innerHTML = '<li>Erro ao carregar placar</li>';
-        });
+        // 1. Primeiro obtemos os dados do jogador
+        const playerRef = ref(db, 'players/' + name);
+        const snapshot = await get(playerRef);
         
+        if (snapshot.exists()) {
+          const playerData = snapshot.val();
+          
+          // 2. Removemos o registro de IP associado (se existir)
+          if (playerData.ip) {
+            const ipRef = ref(db, 'ips/' + playerData.ip);
+            await remove(ipRef).catch(e => console.warn("Erro ao remover IP:", e));
+          }
+          
+          // 3. Finalmente removemos o jogador
+          await remove(playerRef);
+          return true;
+        }
+        return false;
       } catch (error) {
-        console.error("Erro no carregamento do placar:", error);
-        leaderboardList.innerHTML = '<li>Placar indisponível</li>';
-      }
-    }
-
-    // Função para salvar a pontuação no Firebase
-    async function saveScore(name, score, ip) {
-      if (!firebaseInitialized) {
-        console.warn("Firebase não inicializado - Dados salvos localmente");
-        localStorage.setItem('pendingScore', JSON.stringify({
-          name: sanitizeFirebaseKey(name),
-          score,
-          ip,
-          timestamp: Date.now()
-        }));
-        return true;
-      }
-
-      try {
-        const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
-        const safeName = sanitizeFirebaseKey(name).substring(0, 20);
-        const safeIP = sanitizeFirebaseKey(ip);
-        
-        await set(ref(db, 'players/' + safeName), {
-          score: score,
-          timestamp: Date.now(),
-          ip: safeIP
-        });
-        
-        await set(ref(db, 'ips/' + safeIP), {
-          player: safeName,
-          timestamp: Date.now()
-        });
-        
-        console.log("Pontuação salva com sucesso para:", safeName);
-        return true;
-      } catch (error) {
-        console.error("Erro ao salvar pontuação:", error);
+        console.error("Erro ao remover placar:", error);
         return false;
       }
     }
-
-    // Função startQuiz
-    async function startQuiz() {
-      try {
-        const nameInput = document.getElementById('playerName');
-        const name = nameInput ? nameInput.value.trim() : '';
-        
-        if (!name) {
-          alert('Por favor, digite seu nome para começar.');
-          return;
-        }
-
-        if (name.length > 20) {
-          alert('O nome deve ter no máximo 20 caracteres.');
-          return;
-        }
-
-        currentPlayerIP = await getPlayerIP();
-        console.log("IP do jogador (sanitizado):", currentPlayerIP);
-
-        if (firebaseInitialized) {
-          try {
-            const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
-            const ipRef = ref(db, 'ips/' + currentPlayerIP);
-            const ipSnap = await get(ipRef);
-            
-            if (ipSnap.exists()) {
-              showElement('ipWarning');
-              document.getElementById('startBtn').disabled = true;
-              return;
-            }
-          } catch (firebaseError) {
-            console.warn("Erro ao verificar IP no Firebase:", firebaseError);
-          }
-        }
-
-        currentPlayerName = name;
-        hideElement('intro');
-        showElement('quiz');
-        showQuestion(0);
-
-      } catch (error) {
-        console.error("Erro ao iniciar quiz:", error);
-        alert("Erro ao iniciar. Recarregue a página e tente novamente.");
-      }
-    }
-
-    // Função showQuestion
-    function showQuestion(index) {
-      document.querySelectorAll('.question').forEach(q => {
-        q.classList.add('hidden');
-      });
-
-      const currentQuestion = document.getElementById(`q${index + 1}`);
-      if (currentQuestion) {
-        currentQuestion.classList.remove('hidden');
-      }
-
-      const submitBtn = document.getElementById('submitBtn');
-      if (submitBtn) {
-        submitBtn.classList.toggle('hidden', index !== totalQuestions - 1);
-      }
-    }
-
-    // Função checkAnswers
-    async function checkAnswers() {
-      try {
-        let score = 0;
-        
-        for(let i = 1; i <= totalQuestions; i++) {
-          const selected = document.querySelector(`input[name="q${i}"]:checked`);
-          if (!selected) {
-            alert(`Por favor, responda a pergunta ${i}`);
-            return;
-          }
-          score += parseInt(selected.value);
-        }
-
-        if (!currentPlayerName || currentPlayerName.trim() === '') {
-          alert("Nome do jogador inválido. Por favor, recomece.");
-          return;
-        }
-
-        let savedSuccessfully = false;
-        if (currentPlayerName && currentPlayerIP) {
-          savedSuccessfully = await saveScore(currentPlayerName, score, currentPlayerIP);
-          
-          if (!savedSuccessfully) {
-            alert("As respostas não puderam ser salvas. Verifique sua conexão e tente novamente.");
-            return;
-          }
-        }
-
-        hideElement('quiz');
-        showElement('finalMessage');
-        
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        if (scoreDisplay) {
-          scoreDisplay.textContent = `Sua pontuação: ${score} / ${totalQuestions}`;
-        }
-
-        const finalMessages = {
-          4: "Você é o mestre da bag! 👑",
-          3: "Quase lá, vai com tudo!",
-          2: "Boa! Continue treinando.",
-          1: "Vamos melhorar, não desista.",
-          0: "Bora tentar de novo!"
-        };
-
-        const finalTitle = document.querySelector('#finalMessage h2');
-        if (finalTitle) {
-          finalTitle.textContent = finalMessages[score] || "Obrigado por jogar!";
-        }
-
-        if (score === totalQuestions) {
-          const gifElement = document.getElementById('backgroundGif');
-          if (gifElement) {
-            gifElement.style.display = 'block';
-          }
-        }
-
-        loadLeaderboard();
-
-      } catch (error) {
-        console.error("Erro ao verificar respostas:", error);
-        alert("Ocorreu um erro ao processar suas respostas. Por favor, tente novamente.");
-      }
-    }
-
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        await initializeFirebase();
-        loadLeaderboard();
-        showElement('intro');
-      } catch (error) {
-        console.error("Erro na inicialização:", error);
-        document.getElementById('intro').classList.remove('hidden');
-        document.getElementById('leaderboardList').innerHTML = '<li>Erro ao carregar o jogo</li>';
-      }
-    });
-
-    document.getElementById('startBtn')?.addEventListener('click', () => {
-      startQuiz().catch(e => console.error("Erro no clique:", e));
-    });
-
-    document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
-      input.addEventListener('change', () => {
-        if (currentQuestionIndex < totalQuestions - 1) {
-          currentQuestionIndex++;
-          showQuestion(currentQuestionIndex);
-        }
-      });
-    });
-
-    document.getElementById('submitBtn')?.addEventListener('click', checkAnswers);
 
     // Função para abrir modal de limpeza
     async function openClearModal() {
@@ -624,33 +338,6 @@
       }
     }
 
-    // Função para remover placar
-    async function removeScore(name) {
-      if (!firebaseInitialized) return false;
-      
-      try {
-        const { ref, get, remove } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
-        const playerRef = ref(db, 'players/' + sanitizeFirebaseKey(name));
-        const snapshot = await get(playerRef);
-        
-        if (snapshot.exists()) {
-          const playerData = snapshot.val();
-          
-          if (playerData.ip) {
-            const ipRef = ref(db, 'ips/' + sanitizeFirebaseKey(playerData.ip));
-            await remove(ipRef);
-          }
-          
-          await remove(playerRef);
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error("Erro ao remover placar:", error);
-        return false;
-      }
-    }
-
     // Event listener para o botão Limpar placar
     document.getElementById('clearBtn')?.addEventListener('click', async () => {
       const senha = prompt("Digite a senha de administrador:");
@@ -665,51 +352,77 @@
       hideElement('modalOverlay');
     });
 
+    // Formulário de limpeza - VERSÃO CORRIGIDA
     document.getElementById('clearForm')?.addEventListener('submit', async (e) => {
       e.preventDefault();
-      const checkboxes = [...document.querySelectorAll('input[name="playerToDelete"]:checked')];
       
-      if (checkboxes.length === 0) {
-        alert('Selecione pelo menos um placar para excluir.');
-        return;
+      const confirmBtn = document.getElementById('confirmClear');
+      const originalText = confirmBtn.textContent;
+      confirmBtn.disabled = true;
+      confirmBtn.classList.add('processing');
+      confirmBtn.textContent = "Processando...";
+      
+      try {
+        const checkboxes = [...document.querySelectorAll('input[name="playerToDelete"]:checked')];
+        
+        if (checkboxes.length === 0) {
+          alert('Selecione pelo menos um placar para excluir.');
+          return;
+        }
+        
+        let successCount = 0;
+        let failCount = 0;
+        
+        for (const checkbox of checkboxes) {
+          try {
+            const removed = await removeScore(checkbox.value);
+            if (removed) {
+              successCount++;
+              // Atualiza visualmente removendo o item da lista
+              checkbox.closest('.player-checkbox').style.display = 'none';
+            } else {
+              failCount++;
+            }
+            await new Promise(resolve => setTimeout(resolve, 200)); // Pequeno delay
+          } catch (error) {
+            console.error(`Erro ao remover ${checkbox.value}:`, error);
+            failCount++;
+          }
+        }
+        
+        let message = `${successCount} placar(es) removido(s) com sucesso!`;
+        if (failCount > 0) {
+          message += `\nFalha ao remover ${failCount} placar(es).`;
+        }
+        
+        alert(message);
+        loadLeaderboard(); // Atualiza o placar visível
+        
+      } catch (error) {
+        console.error("Erro no processo de limpeza:", error);
+        alert("Ocorreu um erro durante a limpeza. Verifique o console para detalhes.");
+      } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.classList.remove('processing');
+        confirmBtn.textContent = originalText;
+        hideElement('modalOverlay');
       }
-      
-      let successCount = 0;
-      let failCount = 0;
-      
-      for (const checkbox of checkboxes) {
-        const removed = await removeScore(checkbox.value);
-        if (removed) successCount++;
-        else failCount++;
-      }
-      
-      let message = `${successCount} placar(es) removido(s) com sucesso!`;
-      if (failCount > 0) {
-        message += `\nFalha ao remover ${failCount} placar(es).`;
-      }
-      
-      hideElement('modalOverlay');
-      alert(message);
-      loadLeaderboard();
     });
 
-    // Verifica e envia pontuações pendentes quando online
-    window.addEventListener('online', async () => {
-      if (!firebaseInitialized) {
+    // Inicialização
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
         await initializeFirebase();
+        loadLeaderboard();
+        showElement('intro');
+      } catch (error) {
+        console.error("Erro na inicialização:", error);
+        document.getElementById('intro').classList.remove('hidden');
+        document.getElementById('leaderboardList').innerHTML = '<li>Erro ao carregar o jogo</li>';
       }
-      
-      const pendingScore = localStorage.getItem('pendingScore');
-      if (pendingScore && firebaseInitialized) {
-        const { name, score, ip } = JSON.parse(pendingScore);
-        const saved = await saveScore(name, score, ip);
-        if (saved) {
-          localStorage.removeItem('pendingScore');
-        }
-      }
-      
-      loadLeaderboard();
     });
+
+    // ... (mantenha o restante do código existente) ...
   </script>
 </body>
 </html>
