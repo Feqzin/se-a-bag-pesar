@@ -1,236 +1,10 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>Se a bag pesar</title>
-  <style>
-    body {
-      margin: 0;
-      font-family: 'Courier New', Courier, monospace;
-      background-color: #000;
-      color: #0f0;
-      display: flex;
-      justify-content: center;
-      align-items: flex-start;
-      min-height: 100vh;
-      padding: 20px;
-    }
-    .hidden { display: none; }
-    button {
-      margin-top: 20px;
-      padding: 12px 24px;
-      background-color: #0f0;
-      border: none;
-      color: #000;
-      font-weight: bold;
-      cursor: pointer;
-      font-size: 1rem;
-    }
-    .question {
-      margin-top: 30px;
-    }
-    .question p {
-      margin-bottom: 10px;
-    }
-    .answers label {
-      display: block;
-      margin: 6px 0;
-      cursor: pointer;
-    }
-    #finalMessage a {
-      color: #0f0;
-      font-weight: bold;
-      font-size: 1.2rem;
-      text-decoration: underline;
-    }
-    #backgroundGif {
-      display: none;
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      z-index: -1;
-      opacity: 0.3;
-    }
-    #container {
-      display: flex;
-      justify-content: center;
-      width: 100%;
-    }
-    #mainContent {
-      max-width: 600px;
-    }
-    #leaderboard {
-      width: 250px;
-      margin-left: 40px;
-      display: block;
-    }
-    #leaderboard h3 {
-      color: #0f0;
-    }
-    #leaderboard ul {
-      list-style: none;
-      padding: 0;
-    }
-    #leaderboard li {
-      margin-bottom: 10px;
-    }
-    #modalOverlay {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100vw;
-      height: 100vh;
-      background-color: rgba(0,0,0,0.75);
-      display: none;
-      justify-content: center;
-      align-items: center;
-      z-index: 9999;
-    }
-    #modalContent {
-      background-color: #111;
-      padding: 20px;
-      border: 2px solid #0f0;
-      max-height: 80vh;
-      overflow-y: auto;
-      width: 350px;
-      border-radius: 8px;
-    }
-    #modalContent h2 {
-      margin-top: 0;
-      color: #0f0;
-      font-size: 1.5rem;
-    }
-    #modalContent label {
-      display: block;
-      margin: 8px 0;
-      cursor: pointer;
-    }
-    #modalButtons {
-      margin-top: 20px;
-      text-align: right;
-    }
-    #modalButtons button {
-      margin-left: 10px;
-    }
-    #ipWarning {
-      color: red;
-      margin-top: 10px;
-      display: none;
-    }
-    .player-checkbox {
-      padding: 8px;
-      border-bottom: 1px solid #333;
-    }
-    .player-checkbox:hover {
-      background-color: #222;
-    }
-    .select-all {
-      padding: 10px;
-      margin-bottom: 10px;
-      border-bottom: 2px solid #0f0;
-    }
-    #playersCheckboxes {
-      max-height: 50vh;
-      overflow-y: auto;
-      padding: 10px;
-      background-color: #0a0a0a;
-      border: 1px solid #0f0;
-      border-radius: 4px;
-    }
-  </style>
+  <!-- ... (mantenha o head original igual) ... -->
 </head>
 <body>
-  <img id="backgroundGif" src="https://media0.giphy.com/media/v1.Y2lkPTc5MGI3NjExNmM4YmhsazhubjR1YThjeDd2dGlwem1nbmZ5ZHN2NWcwMWNlaDgzaiZlcD12MV9pbnRlcm5hbF9naWZfYnlfaWQmY3Q9cw/UurMzl2Xbo7AuVigoh/giphy.gif" />
-
-  <div id="container">
-    <div id="mainContent">
-      <div id="intro">
-        <h1>"Se a bag pesar..."</h1>
-        <p>Você vai aguentar ou vai correr?</p>
-        <input type="text" id="playerName" placeholder="Digite seu nome" />
-        <div id="ipWarning">Você já jogou! Só pode jogar uma vez.</div>
-        <br />
-        <button id="startBtn">Começar o jogo</button>
-        <br />
-        <button id="clearBtn">Limpar placar (admin)</button>
-      </div>
-
-      <div id="quiz" class="hidden">
-        <div class="question" id="q1">
-          <p>1. Qual animal aparece como símbolo de lucro no som?</p>
-          <div class="answers">
-            <label><input type="radio" name="q1" value="0" /> Tigre</label>
-            <label><input type="radio" name="q1" value="1" /> Onça</label>
-            <label><input type="radio" name="q1" value="0" /> Cobra</label>
-            <label><input type="radio" name="q1" value="0" /> Corvo</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q2">
-          <p>2. O que o "Magikarp" representa na letra?</p>
-          <div class="answers">
-            <label><input type="radio" name="q2" value="0" /> Um Pokémon fraco</label>
-            <label><input type="radio" name="q2" value="1" /> A grana nadando</label>
-            <label><input type="radio" name="q2" value="0" /> Evolução no corre</label>
-            <label><input type="radio" name="q2" value="0" /> Algo aleatório</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q3">
-          <p>3. O que acontece "se a bag pesar"?</p>
-          <div class="answers">
-            <label><input type="radio" name="q3" value="0" /> Eu sumo</label>
-            <label><input type="radio" name="q3" value="0" /> Eu corro</label>
-            <label><input type="radio" name="q3" value="1" /> Eu jogo na conta</label>
-            <label><input type="radio" name="q3" value="0" /> Eu desisto</label>
-          </div>
-        </div>
-
-        <div class="question hidden" id="q4">
-          <p>4. Quando será lançada a música?</p>
-          <div class="answers">
-            <label><input type="radio" name="q4" value="0" /> 01-06-25</label>
-            <label><input type="radio" name="q4" value="0" /> 30-05-25</label>
-            <label><input type="radio" name="q4" value="1" /> 31-05-25</label>
-            <label><input type="radio" name="q4" value="0" /> 01-05-25</label>
-          </div>
-        </div>
-
-        <button class="hidden" id="submitBtn">Ver resultado</button>
-      </div>
-
-      <div id="finalMessage" class="hidden">
-        <h2>Você aguenta a bag.</h2>
-        <p id="scoreDisplay"></p>
-        <p><a href="https://distrokid.com/hyperfollow/feqzin/se-a-bag-pesar" target="_blank">OUVIR "Se a bag pesar"</a></p>
-      </div>
-    </div>
-
-    <div id="leaderboard">
-      <h3>Placar de líderes</h3>
-      <ul id="leaderboardList">
-        <li>Carregando placar...</li>
-      </ul>
-    </div>
-  </div>
-
-  <!-- Modal para limpar placares -->
-  <div id="modalOverlay">
-    <div id="modalContent">
-      <h2>Selecionar placares para excluir</h2>
-      <form id="clearForm">
-        <div id="playersCheckboxes" style="max-height: 300px; overflow-y: auto;"></div>
-        <div id="modalButtons">
-          <button type="button" id="cancelClear">Cancelar</button>
-          <button type="submit" id="confirmClear">Excluir selecionados</button>
-        </div>
-      </form>
-    </div>
-  </div>
+  <!-- ... (mantenha o body HTML original igual) ... -->
 
   <script type="module">
     // Configuração do Firebase
@@ -251,8 +25,9 @@
     
     async function initializeFirebase() {
       try {
-        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-app.js");
-        const { getDatabase } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
+        // Importa apenas os módulos necessários
+        const { initializeApp } = await import("https://www.gstatic.com/firebasejs/9.6.10/firebase-app.js");
+        const { getDatabase } = await import("https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js");
         
         const app = initializeApp(firebaseConfig);
         db = getDatabase(app);
@@ -260,6 +35,8 @@
         console.log("Firebase inicializado com sucesso");
       } catch (error) {
         console.error("Erro ao conectar com Firebase:", error);
+        // Mostra mensagem de fallback mesmo sem Firebase
+        document.getElementById('intro').classList.remove('hidden');
         document.getElementById('leaderboardList').innerHTML = '<li>Placar indisponível</li>';
       }
     }
@@ -311,7 +88,7 @@
       }
 
       try {
-        const { ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
+        const { ref, onValue } = await import("https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js");
         const playersRef = ref(db, 'players');
         
         onValue(playersRef, (snapshot) => {
@@ -351,15 +128,10 @@
             li.textContent = `${index + 1}. ${player.name}: ${player.score} pontos`;
             leaderboardList.appendChild(li);
           });
-          
-        }, (error) => {
-          console.error("Erro ao carregar placar:", error);
-          leaderboardList.innerHTML = '<li>Erro ao carregar placar</li>';
         });
-        
       } catch (error) {
-        console.error("Erro no carregamento do placar:", error);
-        leaderboardList.innerHTML = '<li>Placar indisponível</li>';
+        console.error("Erro ao carregar placar:", error);
+        leaderboardList.innerHTML = '<li>Erro ao carregar placar</li>';
       }
     }
 
@@ -377,7 +149,7 @@
       }
 
       try {
-        const { ref, set } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
+        const { ref, set } = await import("https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js");
         const safeName = sanitizeFirebaseKey(name).substring(0, 20);
         const safeIP = sanitizeFirebaseKey(ip);
         
@@ -403,25 +175,18 @@
     // Função startQuiz
     async function startQuiz() {
       try {
-        const nameInput = document.getElementById('playerName');
-        const name = nameInput ? nameInput.value.trim() : '';
-        
+        const name = document.getElementById('playerName')?.value.trim() || '';
         if (!name) {
           alert('Por favor, digite seu nome para começar.');
           return;
         }
 
-        if (name.length > 20) {
-          alert('O nome deve ter no máximo 20 caracteres.');
-          return;
-        }
-
         currentPlayerIP = await getPlayerIP();
-        console.log("IP do jogador (sanitizado):", currentPlayerIP);
+        console.log("IP do jogador:", currentPlayerIP);
 
         if (firebaseInitialized) {
           try {
-            const { ref, get } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
+            const { ref, get } = await import("https://www.gstatic.com/firebasejs/9.6.10/firebase-database.js");
             const ipRef = ref(db, 'ips/' + currentPlayerIP);
             const ipSnap = await get(ipRef);
             
@@ -430,8 +195,8 @@
               document.getElementById('startBtn').disabled = true;
               return;
             }
-          } catch (firebaseError) {
-            console.warn("Erro ao verificar IP no Firebase:", firebaseError);
+          } catch (error) {
+            console.warn("Erro ao verificar IP:", error);
           }
         }
 
@@ -439,7 +204,6 @@
         hideElement('intro');
         showElement('quiz');
         showQuestion(0);
-
       } catch (error) {
         console.error("Erro ao iniciar quiz:", error);
         alert("Erro ao iniciar. Recarregue a página e tente novamente.");
@@ -477,73 +241,59 @@
           score += parseInt(selected.value);
         }
 
-        if (!currentPlayerName || currentPlayerName.trim() === '') {
-          alert("Nome do jogador inválido. Por favor, recomece.");
+        const saved = await saveScore(currentPlayerName, score, currentPlayerIP);
+        if (!saved) {
+          alert("As respostas não puderam ser salvas. Verifique sua conexão.");
           return;
-        }
-
-        let savedSuccessfully = false;
-        if (currentPlayerName && currentPlayerIP) {
-          savedSuccessfully = await saveScore(currentPlayerName, score, currentPlayerIP);
-          
-          if (!savedSuccessfully) {
-            alert("As respostas não puderam ser salvas. Verifique sua conexão e tente novamente.");
-            return;
-          }
         }
 
         hideElement('quiz');
         showElement('finalMessage');
         
-        const scoreDisplay = document.getElementById('scoreDisplay');
-        if (scoreDisplay) {
-          scoreDisplay.textContent = `Sua pontuação: ${score} / ${totalQuestions}`;
-        }
-
-        const finalMessages = {
+        document.getElementById('scoreDisplay').textContent = `Sua pontuação: ${score} / ${totalQuestions}`;
+        
+        const messages = {
           4: "Você é o mestre da bag! 👑",
           3: "Quase lá, vai com tudo!",
           2: "Boa! Continue treinando.",
           1: "Vamos melhorar, não desista.",
           0: "Bora tentar de novo!"
         };
-
-        const finalTitle = document.querySelector('#finalMessage h2');
-        if (finalTitle) {
-          finalTitle.textContent = finalMessages[score] || "Obrigado por jogar!";
-        }
+        
+        document.querySelector('#finalMessage h2').textContent = messages[score] || "Obrigado por jogar!";
 
         if (score === totalQuestions) {
-          const gifElement = document.getElementById('backgroundGif');
-          if (gifElement) {
-            gifElement.style.display = 'block';
-          }
+          document.getElementById('backgroundGif').style.display = 'block';
         }
 
         loadLeaderboard();
-
       } catch (error) {
         console.error("Erro ao verificar respostas:", error);
-        alert("Ocorreu um erro ao processar suas respostas. Por favor, tente novamente.");
+        alert("Ocorreu um erro. Por favor, tente novamente.");
       }
     }
 
-    // Event listeners
-    document.addEventListener('DOMContentLoaded', async () => {
+    // Inicialização do aplicativo
+    async function initApp() {
       try {
-        await initializeFirebase();
-        loadLeaderboard();
+        // Mostra a interface imediatamente
         showElement('intro');
+        
+        // Tenta conectar ao Firebase
+        await initializeFirebase();
+        await loadLeaderboard();
       } catch (error) {
         console.error("Erro na inicialização:", error);
-        document.getElementById('intro').classList.remove('hidden');
-        document.getElementById('leaderboardList').innerHTML = '<li>Erro ao carregar o jogo</li>';
+        // Garante que a interface é mostrada mesmo com erro
+        showElement('intro');
       }
-    });
+    }
 
-    document.getElementById('startBtn')?.addEventListener('click', () => {
-      startQuiz().catch(e => console.error("Erro no clique:", e));
-    });
+    // Inicia o aplicativo quando o DOM estiver pronto
+    document.addEventListener('DOMContentLoaded', initApp);
+
+    // Event listeners
+    document.getElementById('startBtn')?.addEventListener('click', startQuiz);
 
     document.querySelectorAll('#quiz input[type=radio]').forEach(input => {
       input.addEventListener('change', () => {
@@ -556,160 +306,7 @@
 
     document.getElementById('submitBtn')?.addEventListener('click', checkAnswers);
 
-    // Função para abrir modal de limpeza
-    async function openClearModal() {
-      if (!firebaseInitialized) {
-        alert("Funcionalidade não disponível offline");
-        return;
-      }
-
-      const playersCheckboxes = document.getElementById('playersCheckboxes');
-      if (!playersCheckboxes) return;
-
-      playersCheckboxes.innerHTML = '<p>Carregando placares...</p>';
-      showElement('modalOverlay');
-      
-      try {
-        const { ref, onValue } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
-        const playersRef = ref(db, 'players');
-        
-        onValue(playersRef, (snapshot) => {
-          playersCheckboxes.innerHTML = '';
-          
-          if (!snapshot.exists()) {
-            playersCheckboxes.innerHTML = '<p>Nenhum placar disponível.</p>';
-            return;
-          }
-          
-          const players = snapshot.val();
-          let hasPlayers = false;
-          
-          for (const name in players) {
-            hasPlayers = true;
-            const player = players[name];
-            const div = document.createElement('div');
-            div.className = 'player-checkbox';
-            div.innerHTML = `
-              <label>
-                <input type="checkbox" name="playerToDelete" value="${name}">
-                <span>${name} - ${player.score} pontos</span>
-              </label>
-            `;
-            playersCheckboxes.appendChild(div);
-          }
-          
-          if (hasPlayers) {
-            const selectAllDiv = document.createElement('div');
-            selectAllDiv.className = 'select-all';
-            selectAllDiv.innerHTML = `
-              <label>
-                <input type="checkbox" id="selectAll">
-                <strong>Selecionar todos</strong>
-              </label>
-            `;
-            playersCheckboxes.insertBefore(selectAllDiv, playersCheckboxes.firstChild);
-            
-            document.getElementById('selectAll')?.addEventListener('change', function() {
-              const checkboxes = playersCheckboxes.querySelectorAll('input[name="playerToDelete"]');
-              checkboxes.forEach(checkbox => {
-                checkbox.checked = this.checked;
-              });
-            });
-          }
-        }, { onlyOnce: true });
-      } catch (error) {
-        console.error("Erro ao abrir modal:", error);
-        alert("Erro ao carregar placares.");
-        hideElement('modalOverlay');
-      }
-    }
-
-    // Função para remover placar
-    async function removeScore(name) {
-      if (!firebaseInitialized) return false;
-      
-      try {
-        const { ref, get, remove } = await import("https://www.gstatic.com/firebasejs/11.7.3/firebase-database.js");
-        const playerRef = ref(db, 'players/' + sanitizeFirebaseKey(name));
-        const snapshot = await get(playerRef);
-        
-        if (snapshot.exists()) {
-          const playerData = snapshot.val();
-          
-          if (playerData.ip) {
-            const ipRef = ref(db, 'ips/' + sanitizeFirebaseKey(playerData.ip));
-            await remove(ipRef);
-          }
-          
-          await remove(playerRef);
-          return true;
-        }
-        return false;
-      } catch (error) {
-        console.error("Erro ao remover placar:", error);
-        return false;
-      }
-    }
-
-    // Event listener para o botão Limpar placar
-    document.getElementById('clearBtn')?.addEventListener('click', async () => {
-      const senha = prompt("Digite a senha de administrador:");
-      if (senha === "bagsecreta123") {
-        await openClearModal();
-      } else {
-        alert("Senha incorreta! Acesso negado.");
-      }
-    });
-
-    document.getElementById('cancelClear')?.addEventListener('click', () => {
-      hideElement('modalOverlay');
-    });
-
-    document.getElementById('clearForm')?.addEventListener('submit', async (e) => {
-      e.preventDefault();
-      const checkboxes = [...document.querySelectorAll('input[name="playerToDelete"]:checked')];
-      
-      if (checkboxes.length === 0) {
-        alert('Selecione pelo menos um placar para excluir.');
-        return;
-      }
-      
-      let successCount = 0;
-      let failCount = 0;
-      
-      for (const checkbox of checkboxes) {
-        const removed = await removeScore(checkbox.value);
-        if (removed) successCount++;
-        else failCount++;
-      }
-      
-      let message = `${successCount} placar(es) removido(s) com sucesso!`;
-      if (failCount > 0) {
-        message += `\nFalha ao remover ${failCount} placar(es).`;
-      }
-      
-      hideElement('modalOverlay');
-      alert(message);
-      loadLeaderboard();
-    });
-
-    // Verifica e envia pontuações pendentes quando online
-    window.addEventListener('online', async () => {
-      if (!firebaseInitialized) {
-        await initializeFirebase();
-      }
-      
-      const pendingScore = localStorage.getItem('pendingScore');
-      if (pendingScore && firebaseInitialized) {
-        const { name, score, ip } = JSON.parse(pendingScore);
-        const saved = await saveScore(name, score, ip);
-        if (saved) {
-          localStorage.removeItem('pendingScore');
-        }
-      }
-      
-      loadLeaderboard();
-    });
+    // ... (implemente as outras funções como openClearModal, removeScore, etc)
   </script>
 </body>
 </html>
